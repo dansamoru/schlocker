@@ -7,3 +7,5 @@
 Визуализация : 
 
 Схема работы системы : https://miro.com/app/board/o9J_kwXiU_w=/
+
+USM : https://miro.com/app/board/o9J_kwRy8LM=/
