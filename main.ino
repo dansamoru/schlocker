@@ -1,122 +1,128 @@
-#define section 6
-#define deleteDelay 1500
+#include <Arduino.h>
+#include "User_Setup.h"
 
+#define SECTIONQUANTITY 6
 
-
-
-
-
-
-class Locker{
-  public:
-    int userId = NULL;
+class Locker {
+public:
+    String userId = NULL;
     bool isUsed = false;
-    //datetime lastAct;
-    bool isOpened();
-    void openDoor(){
-      return 0;
+
+    bool isOpened() {
+        return 0;
     }
-    void deleteUser(){
-      return 0;
+
+    void openDoor() {
+        return;
+        0;
+    }
+
+    void deleteUser() {
+
     }
 };
 
-Locker lockers[section];
 
 
-void registration(int cardId){
-  
-}
+Locker lockers[SECTIONQUANTITY];
+short lastLocker;
+//String cardId = NULL;
 
-bool availableCard(){
-  Serial.print("Enter card availble (Y/N): ");
-  while(Serial.available()==0);
-  char s = Serial.read();
-  if(s == 'Y'){
-    return true;
-  }else{
-    return false;
-  }
-}
-
-int cardWritten(int cardId){
-  for(int i = 0; i<section;i++){
-    if(lockers[i].userId == cardId){
-      return i;
+bool buttonNumber() {
+    /*
+     * Getting number of pressed button
+     * true -just open
+     * false - open and delete
+     *
+     * DEBUG
+    */
+    Serial.print("Enter bvutton (y/n): ");
+    while (Serial.available() == 0);
+    char s = Serial.read();
+    if (s == 'y') {
+        return true;
+    } else {
+        return false;
     }
-  }
 }
 
-int *availableLockers(){
-  int availableLockers[section];
-  for(int i = 0; i < section; i++){
-    if(lockers[i].isUsed == false){
-      availableLockers[i] = i;
-    }else{
-      availableLockers[i]=NULL;
+void registration(String userId) {
+
+}
+
+void openLocker(int lockerId) {
+    if (buttonNumber()) {
+        lockers[lockerId].openDoor();
+    } else {
+        lockers[lockerId].openDoor();
+        lockers[lockerId].deleteUser();
     }
-  }
-  return availableLockers;
 }
 
-bool notNull(int *arr, int s){
-  for(int i = 0; i<s;i++){
-    if(arr[i] != NULL){
-      return true;
+short cardRegistration(String cardId) {
+    for (int i = 0; i < SECTIONQUANTITY; i++) {
+        if (lockers[i].userId == cardId) {
+            return i;
+        }
     }
-  }
-  return false;
+    return NULL;
 }
 
-bool buttonPressed(){
-  Serial.print("Enter button position (Y/N): ");
-  while(Serial.available()==0);
-  char s = Serial.read();
-  if(s == 'Y'){
-    return true;
-  }else{
-    return false;
-  }
+String getCardId() {
+    /*
+     * Card identification
+     * DEBUG
+     */
+    Serial.print("Enter card id: ");
+    while (Serial.available() == 0);
+    return Serial.readStringUntil(' ');
 }
 
-void deleteChecker(int lockerId){
-  int startTime = millis();
-  while(millis() - startTime <= deleteDelay){
-    if(buttonPressed()){
-      lockers[lockerId].deleteUser();
-      return 0;
+void cardInput() {
+    /*
+     * Acts after applying the card
+     */
+    String cardId = getCardId();
+    short lockerId = cardRegistration(cardId);
+    if (lockerId != NULL) {
+        openLocker(lockerId);
+    } else {
+        registration(cardId);
     }
-    if(availableCard()){
-      return 0;
+}
+
+bool isCardAvailable() {
+    /*
+     * Checking for availability of the card
+     * DEBUG
+     */
+    Serial.print("Enter card availability (y/n): ");
+    while (Serial.available() == 0);
+    char s = Serial.read();
+    if (s == 'y') {
+        return true;
+    } else {
+        return false;
     }
-  }
-}
-bool openLocker(int lockerId){
-  lockers[lockerId].openDoor();
-  deleteChecker(lockerId);
-
 }
 
-void cardInput(){
-  if(availableCard){
-    int cardLocker = cardWritten(228);
-    if(cardLocker != NULL){
-      openLocker(cardLocker);
-      registration(228);
-    }
-  }
+void waitingForCard() {
+    /*
+     * Waiting while card is not near the scanner
+     */
+    while (!isCardAvailable());
 }
 
-
-int main(){
-  cardInput();
-  return 0;
+int main() {
+    waitingForCard();
+    cardInput();
+    return 0;
 }
 
-void setup(){
-  Serial.begin(9600);
+void setup() {
+
 }
 
-void loop(){
-  main();
+void loop() {
+    main();
 }
