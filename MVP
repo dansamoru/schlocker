@@ -9,18 +9,18 @@ void check(); // инициализация функции проверки на
 
 void setup() {
   for(int i = 0; i <= QUANTITY; i++){ // в цикле настраиваем каждый пин
-    pinMode(QUANTITY + START_PIN, INPUT);
+    pinMode(i + START_PIN, INPUT);
   }
 }
 
 void loop() {
  check(); 
 }
-void check()
+void check()// проверка
 {
   for(int i = 0; i <= QUANTITY; ++i) {//с каждым пином проверяем есть ли там ключ или нет
      if(digitalRead(i + START_PIN) == LOW){//если ключа в ключнце нет
-      if(millis - previousMillis[i] > DELAY){// время с предыдущей проверке больше задержки
+      if(millis - previousMillis[i] > DELAY){// время с момента запуска до последней проверки
         previousMillis[i] = millis;
         is_using[i] = true;
      }
