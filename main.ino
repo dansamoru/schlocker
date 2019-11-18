@@ -90,7 +90,7 @@ void cardInput() {
         registration(cardId);
     }
 }
-// ьоь тевирп
+// ьоь тевирп проверка связи
 
 bool isCardAvailable() {
     /*
