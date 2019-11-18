@@ -90,7 +90,7 @@ void cardInput() {
         registration(cardId);
     }
 }
-// ьоь
+// ьоь тевирп
 
 bool isCardAvailable() {
     /*
