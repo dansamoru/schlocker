@@ -4,7 +4,7 @@
 #include <Servo.h>
 
 //  Project settings:
-#define CELL_QUANTITY 1
+#define CELL_QUANTITY 3
 
 //  Scheme settings:
 #define CELL_START_PIN 2
@@ -14,8 +14,8 @@
 
 //  Hardware settings:
 #define DEBUG true
-#define OPEN_ANGLE 90
-#define CLOSE_ANGLE 0
+#define OPEN_ANGLE 170
+#define CLOSE_ANGLE 10
 #define SCANNER_WAIT_TIME 10000
 #define LOOP_DELAY 100
 
@@ -111,14 +111,18 @@ public:
         servo->attach(number);
     }
 
-    void write(short angle) {
-        Serial.println(number);
-        servo->write(angle);
-
+        short read() {
+        return servo->read();
     }
 
-    short read() {
-        return servo->read();
+    void write(short angle) {
+        Serial.println(number);
+        Serial.println(read());
+        Serial.println(angle);
+        servo->write(angle);
+        delay(1000);
+        servo->write(10);
+
     }
 };
 
@@ -155,7 +159,6 @@ public:
         identity = _identity;
         user = new User(0);
         port = new PortServo(identity + CELL_START_PIN);
-        port->write(CLOSE_ANGLE);
     }
 
     int userId() {
@@ -277,14 +280,15 @@ public:
 
 };
 
-Schlocker schlocker;
+Schlocker *schlocker;
 
 void setup() {
     Serial.begin(9600);
+    schlocker = new Schlocker();
     debugger.loaded();
 }
 
 void loop() {
-    schlocker.refresh();
+    schlocker->refresh();
     delay(LOOP_DELAY);
 }
