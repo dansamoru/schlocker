@@ -1,129 +1,286 @@
 #include <Arduino.h>
-#include "User_Setup.h"
+#include <Servo/Servo.h>
 
-#define SECTIONQUANTITY 6
+//#include <Servo.h>
 
-class Locker {
+//  Project settings:
+#define CELL_QUANTITY 6
+
+//  Scheme settings:
+#define CELL_START_PIN 2
+#define SCANNER_PIN 5
+#define GREEN_BUTTON_PIN 2
+#define RED_BUTTON_PIN 6
+
+//  Hardware settings:
+#define DEBUG true
+#define OPEN_ANGLE 90
+#define CLOSE_ANGLE 0
+#define SCANNER_WAIT_TIME 10000
+#define LOOP_DELAY 500
+
+
+class Debugger {
+    bool lastEnds = true;
 public:
-    String userId = NULL;
-    bool isUsed = false;
-
-    bool isOpened() {
-        return 0;
+    int freeRam() {
+        extern int __heap_start, *__brkval;
+        int v;
+        return (int) &v - (__brkval == 0 ? (int) &__heap_start : (int) __brkval);
     }
 
-    void openDoor() {
-        return;
-        0;
+    void loaded() {
+        if (DEBUG) {
+            Serial.println("###LOADED###");
+            Serial.println("#TECHNICAL INFORMATION#");
+            Serial.print("Free RAM: ");
+            Serial.println(freeRam());
+            Serial.println("#END#\n");
+        }
     }
 
-    void deleteUser() {
-
+    void act(String object, String act, int number = -1, bool ending = true) {
+        if (DEBUG) {
+            if (lastEnds) {
+                Serial.println("#ACT#");
+                Serial.print("Object: ");
+                Serial.print(object);
+                if (number != -1) {
+                    Serial.print(" (");
+                    Serial.print(number);
+                    Serial.print(")");
+                }
+                Serial.print("\n");
+            }
+            Serial.print("Act: ");
+            Serial.println(act);
+            lastEnds = false;
+            if (ending) {
+                lastEnds = true;
+                Serial.println("#END#\n");
+            }
+        }
     }
 };
 
+Debugger debugger;
 
+class Port {
+protected:
+    short number;
 
-Locker lockers[SECTIONQUANTITY];
-short lastLocker;
-//String cardId = NULL;
-
-bool buttonNumber() {
-    /*
-     * Getting number of pressed button
-     * true -just open
-     * false - open and delete
-     *
-     * DEBUG
-    */
-    Serial.print("Enter bvutton (y/n): ");
-    while (Serial.available() == 0);
-    char s = Serial.read();
-    if (s == 'y') {
-        return true;
-    } else {
-        return false;
+    Port(short _number) {
+        number = _number;
     }
-}
+};
 
-void registration(String userId) {
-
-}
-
-void openLocker(int lockerId) {
-    if (buttonNumber()) {
-        lockers[lockerId].openDoor();
-    } else {
-        lockers[lockerId].openDoor();
-        lockers[lockerId].deleteUser();
+class PortIn : protected Port {
+public:
+    PortIn(short _number) : Port(_number) {
+        pinMode(number, INPUT);
     }
-}
+};
 
-short cardRegistration(String cardId) {
-    for (int i = 0; i < SECTIONQUANTITY; i++) {
-        if (lockers[i].userId == cardId) {
-            return i;
+class PortOut : protected Port {
+public:
+    PortOut(short _number) : Port(_number) {
+        pinMode(number, OUTPUT);
+    }
+};
+
+class PortButton : protected Port {
+public:
+    PortButton(short _number) : Port(_number) {
+        pinMode(number, INPUT_PULLUP);
+        digitalWrite(number, HIGH);
+    }
+
+    bool read() {
+        return digitalRead(number);
+    }
+};
+
+class PortServo : protected Port {
+    Servo *servo;
+public:
+    PortServo(short _number) : Port(_number) {
+
+        servo = new Servo();
+        servo->attach(number);
+    }
+
+    void write(short angle) {
+        Serial.println(number);
+        servo->write(angle);
+
+    }
+
+    short read() {
+        return servo->read();
+    }
+};
+
+class User {
+    int identity;
+public:
+    User(int _identity) {
+        identity = _identity;
+    }
+
+    int get_identity() {
+        return identity;
+    }
+};
+
+class Button : protected PortButton {
+public:
+    Button(short _number) : PortButton(_number) {}
+
+    bool isPressed() {
+        return !read();
+    }
+};
+
+class Cell {
+    int identity;
+    int lastOpenTime;
+    int registrationTime;
+    bool isOpen;
+    User *user;
+    PortServo *port;
+public:
+    Cell(int _identity) {
+        identity = _identity;
+        user = new User(0);
+        port = new PortServo(identity + CELL_START_PIN);
+        port->write(CLOSE_ANGLE);
+    }
+
+    int userId() {
+        return user->get_identity();
+    }
+
+    void close() {
+        debugger.act("Cell", "Close", identity);
+        isOpen = false;
+        port->write(CLOSE_ANGLE);
+    }
+
+    void open() {
+        debugger.act("Cell", "Open", identity);
+        isOpen = true;
+        port->write(OPEN_ANGLE);
+    }
+
+    void unreg(bool doOpen = true) {
+        debugger.act("Cell", "Unregistration", identity, false);
+        user = new User(0);
+        if(doOpen){
+            open();
         }
     }
-    return NULL;
-}
 
-String getCardId() {
-    /*
-     * Card identification
-     * DEBUG
-     */
-    Serial.print("Enter card id: ");
-    while (Serial.available() == 0);
-    return Serial.readStringUntil(' ');
-}
-
-void cardInput() {
-    /*
-     * Acts after applying the card
-     */
-    String cardId = getCardId();
-    short lockerId = cardRegistration(cardId);
-    if (lockerId != NULL) {
-        openLocker(lockerId);
-    } else {
-        registration(cardId);
+    void reg(int userIdentity, bool doOpen = true) {
+        debugger.act("Cell", "Registration", identity, false);
+        user = new User(userIdentity);
+        if(doOpen){
+            open();
+        }
     }
-}
-// ьоь тевирп проверка связи
+};
 
-bool isCardAvailable() {
-    /*
-     * Checking for availability of the card
-     * DEBUG
-     */
-    Serial.print("Enter card availability (y/n): ");
-    while (Serial.available() == 0);
-    char s = Serial.read();
-    if (s == 'y') {
-        return true;
-    } else {
-        return false;
+class Scanner {
+public:
+    static bool isAvailable() {
+        return Serial.available() > 0;
     }
-}
 
-void waitingForCard() {
-    /*
-     * Waiting while card is not near the scanner
-     */
-    while (!isCardAvailable());
-}
+    int read() {
+        return Serial.parseInt();
+    }
 
-int main() {
-    waitingForCard();
-    cardInput();
-    return 0;
-}
+    int scan() {
+        debugger.act("Scanner", "Start scanning", -1, false);
+        long startTime = millis();
+        bool scanned = false;
+        while (millis() - startTime <= SCANNER_WAIT_TIME) {
+            if (isAvailable()) {
+                int userId = read();
+                debugger.act("Scanner", "End scanning");
+                scanned = true;
+                return userId;
+                break;
+            }
+        }
+        if (!scanned) {
+            debugger.act("Scanner", "End scanning (timeout)");
+        }
+        return -1;
+    }
+
+};
+
+class Indication {
+
+};
+
+class Schlocker {
+    Cell *cells[CELL_QUANTITY];
+    Scanner scanner;
+    Indication indication;
+    Button *greenButton = new Button(GREEN_BUTTON_PIN);
+    Button *redButton = new Button(RED_BUTTON_PIN);
+public:
+    Schlocker() {
+        for (int i = 0; i < CELL_QUANTITY; ++i) {
+            cells[i] = new Cell(i);
+        }
+    }
+
+    int cellSearch(int userId) {
+        for (int i = 0; i < CELL_QUANTITY; ++i) {
+            if (cells[i]->userId() == userId) {
+                return i;
+            }
+        }
+        return -1;
+    }
+
+    void refresh() {
+        if (greenButton->isPressed()) {
+            int userId = scanner.scan();
+            if(userId != -1){
+                int cellId = cellSearch(userId);
+                if(cellId != -1){
+                    cells[cellId]->open();
+                }else{
+                    cells[cellSearch(0)]->reg(userId);
+
+                }
+            }
+        }
+        if(redButton->isPressed()){
+            int userId = scanner.read();
+            if(userId != -1){
+                int cellId = cellSearch(userId);
+                if(cellId != -1){
+                    cells[cellId]->unreg();
+                }
+            }
+        }
+    }
+
+
+};
+
+Schlocker schlocker;
 
 void setup() {
-
+    Serial.begin(9600);
+    debugger.loaded();
 }
 
 void loop() {
-    main();
+    schlocker.refresh();
+    delay(LOOP_DELAY);
 }
