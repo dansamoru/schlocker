@@ -1,23 +1,23 @@
-#include <Arduino.h>
-#include <Servo/Servo.h>
+//#include <Arduino.h>
+//#include <Servo/Servo.h>
 
-//#include <Servo.h>
+#include <Servo.h>
 
 //  Project settings:
-#define CELL_QUANTITY 6
+#define CELL_QUANTITY 1
 
 //  Scheme settings:
 #define CELL_START_PIN 2
-#define SCANNER_PIN 5
-#define GREEN_BUTTON_PIN 2
-#define RED_BUTTON_PIN 6
+#define SCANNER_PIN 7
+#define GREEN_BUTTON_PIN 8
+#define RED_BUTTON_PIN 9
 
 //  Hardware settings:
 #define DEBUG true
 #define OPEN_ANGLE 90
 #define CLOSE_ANGLE 0
 #define SCANNER_WAIT_TIME 10000
-#define LOOP_DELAY 500
+#define LOOP_DELAY 100
 
 
 class Debugger {
@@ -35,7 +35,9 @@ public:
             Serial.println("#TECHNICAL INFORMATION#");
             Serial.print("Free RAM: ");
             Serial.println(freeRam());
-            Serial.println("#END#\n");
+            Serial.print("Serial: ");
+            Serial.println(Serial?"YES":"NO");
+            Serial.println("###END###\n");
         }
     }
 
@@ -248,6 +250,7 @@ public:
 
     void refresh() {
         if (greenButton->isPressed()) {
+          debugger.act("Green button", "Pressed");
             int userId = scanner.scan();
             if(userId != -1){
                 int cellId = cellSearch(userId);
@@ -260,6 +263,7 @@ public:
             }
         }
         if(redButton->isPressed()){
+                    debugger.act("Red button", "Pressed");
             int userId = scanner.read();
             if(userId != -1){
                 int cellId = cellSearch(userId);
