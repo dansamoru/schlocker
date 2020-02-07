@@ -35,8 +35,6 @@ public:
             Serial.println("#TECHNICAL INFORMATION#");
             Serial.print("Free RAM: ");
             Serial.println(freeRam());
-            Serial.print("Serial: ");
-            Serial.println(Serial?"YES":"NO");
             Serial.println("###END###\n");
         }
     }
@@ -109,6 +107,7 @@ public:
 
         servo = new Servo();
         servo->attach(number);
+        servo->write(CLOSE_ANGLE);
     }
 
         short read() {
@@ -116,9 +115,6 @@ public:
     }
 
     void write(short angle) {
-        Serial.println(number);
-        Serial.println(read());
-        Serial.println(angle);
         servo->write(angle);
         delay(1000);
         servo->write(10);
@@ -266,8 +262,8 @@ public:
             }
         }
         if(redButton->isPressed()){
-                    debugger.act("Red button", "Pressed");
-            int userId = scanner.read();
+            debugger.act("Red button", "Pressed");
+            int userId = scanner.scan();
             if(userId != -1){
                 int cellId = cellSearch(userId);
                 if(cellId != -1){
