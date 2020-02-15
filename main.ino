@@ -47,14 +47,17 @@ class Debugger {
 public:
 
     //  Free RAM on the board
+    #if DEBUG
     int freeRam() {
         extern int __heap_start, *__brkval;
         int v;
         return (int) &v - (__brkval == 0 ? (int) &__heap_start : (int) __brkval);
     }
+    #endif
 
     //  First message
     void loaded() {
+        #if DEBUG
         if (DEBUG) {
             Serial.println("###LOADED###");
             Serial.println("#TECHNICAL INFORMATION#");
@@ -62,11 +65,12 @@ public:
             Serial.println(freeRam());
             Serial.println("###END###\n");
         }
+        #endif
     }
 
     //  Log acts
     void act(String object, String act, int number = -1, bool ending = true) {
-        if (DEBUG) {
+        #if DEBUG
             if (lastEnds) {
                 Serial.println("#ACT#");
                 Serial.print("Object: ");
@@ -85,7 +89,7 @@ public:
                 lastEnds = true;
                 Serial.println("#END#\n");
             }
-        }
+        #endif
     }
 };
 
