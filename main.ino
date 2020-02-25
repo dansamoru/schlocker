@@ -22,8 +22,8 @@
 #define CELL_QUANTITY 3  //  Quantity of cells
 
 //  ===CIRCUIT SETTINGS===
-#define CELL_START_PIN 2  //  First pin for cells
-#define SCANNER_PIN 7  //  Pin for RFID-scanner
+#define CELL_START_PIN 3  //  First pin for cells
+#define SCANNER_PIN 2  //  Pin for RFID-scanner
 #define OPEN_BUTTON_PIN 8  //  Pin for "Green" button
 #define DELETE_BUTTON_PIN 9  //  Pin for "Red" button
 #define GREEN_LED_PIN 20
@@ -32,8 +32,8 @@
 
 //  ===HARDWARE SETTINGS===
 #define DEBUG true  //  Switch on debug (boolean)
-#define OPEN_ANGLE 170  //  Cell opening angle
-#define CLOSE_ANGLE 10  //  Cell closing angle (Default for first start)
+#define OPEN_ANGLE 90  //  Cell opening angle
+#define CLOSE_ANGLE 0  //  Cell closing angle (Default for first start)
 #define SCANNER_WAIT_TIME 10000  //  Total delay for scanning
 #define LOOP_DELAY 100  //  Delay in "loop"
 #define SERIAL_SPEED 9600
@@ -140,7 +140,7 @@ protected:
         pinMode(number, OUTPUT);
     }
 
-    void set(void value) {
+    void set(bool value) {
         digitalWrite(number, value);
     }
 };
@@ -161,7 +161,7 @@ protected:
 //  Class for ports with servos
 class PortServo : protected Port {
     Servo *servo;
-protected:
+public:
     PortServo(short _number) : Port(_number) {
 
         servo = new Servo();
@@ -201,22 +201,20 @@ protected:
         return card;
     }
 
-    long get_uid() {
-        return *(long *) uid;
+    unsigned long get_uid() {
+        return *(unsigned long *) uid;
     }
 };
 
 //  Class for user with identity key
 class User {
-    long identity;
-public:
-    User(int _identity) {
-        identity = _identity;
+    unsigned long uid=0;
+    public:
+    unsigned long get_uid(){
+      return uid;
     }
-
-    //  Get unique id
-    long get_identity() {
-        return identity;
+    void set_uid(unsigned long _uid){
+      uid=_uid;
     }
 };
 
@@ -234,7 +232,7 @@ public:
 //  Class for indication bulbs
 class Bulb : protected PortOut {
 public:
-    Bulb(_number) : PortOut(_number);
+    Bulb(short _number) : PortOut(_number){}
 
     void turnOn() {
         set(HIGH);
@@ -244,46 +242,43 @@ public:
     void turnOff() {
         set(LOW);
     }
-}
+};
 
 //  Component of section
-class Cell {
+class Cell : protected PortServo {
     int identity;  //  Number of cell
     int lastOpenTime;  //  Time when cell was opened last time
     int registrationTime;  //  Time when cell was registered
     bool isOpen;
-    User *user;
-    PortServo *port;
+    User user;
 public:
-    Cell(int _identity) {
-        identity = _identity;
-        user = new User(0);
-        port = new PortServo(identity + CELL_START_PIN);
+    Cell(int _number) : PortServo(_number) {
+        identity = _number + CELL_START_PIN;
     }
 
     //  Get unique user id
     int userId() {
-        return user->get_identity();
+        return user.get_uid();
     }
 
     //  Close cell
     void close() {
         debugger.act("Cell", "Close", identity);
         isOpen = false;
-        port->write(CLOSE_ANGLE);
+        write(CLOSE_ANGLE);
     }
 
     //  Open cell
     void open() {
         debugger.act("Cell", "Open", identity);
         isOpen = true;
-        port->write(OPEN_ANGLE);
+        write(OPEN_ANGLE);
     }
 
     //  Unregister recorded user
     void unreg(bool doOpen = true) {
         debugger.act("Cell", "Unregistration", identity, false);
-        user = new User(0);
+        user.set_uid(0);
         if (doOpen) {
             open();
         }
@@ -292,7 +287,7 @@ public:
     //  Register new user for cell
     void reg(int userIdentity, bool doOpen = true) {
         debugger.act("Cell", "Registration", identity, false);
-        user = new User(userIdentity);
+        user.set_uid(userIdentity);
         if (doOpen) {
             open();
         }
@@ -300,29 +295,26 @@ public:
 };
 
 //  Class for RFID-scanner
-class Scanner {
-    PortScanner *port;
+class Scanner : protected PortScanner {
 public:
-    Scanner() {
-        port = new PortServo(SCANNER_PIN);
-    }
+    Scanner() : PortScanner(SCANNER_PIN) {}
 
     bool isAvailable() {
-        return port->IsAvailable();
+        return isAvailable();
     }
 
     //  Read current value
-    long read() {
-        return port->get_uid();
+    unsigned long read() {
+        return get_uid();
     }
 
     //  The cycle of scanning
-    long scan() {
+    unsigned long scan() {
         debugger.act("Scanner", "Start scanning", -1, false);
-        long startTime = millis();  //  Variable for timer
+        unsigned long startTime = millis();  //  Variable for timer
         while (millis() - startTime <= SCANNER_WAIT_TIME) {
             if (isAvailable()) {
-                long uid = read();
+                unsigned long uid = read();
                 debugger.act("Scanner", "End scanning");
                 return uid;
             }
@@ -340,7 +332,7 @@ class Indication {
     Bulb *red;
     short mode;
 public:
-    Indication(short green_number, short yellow_number, short red_number) {
+    Indication() {
         green = new Bulb(GREEN_LED_PIN);
         yellow = new Bulb(YELLOW_LED_PIN);
         red = new Bulb(RED_LED_PIN);
@@ -354,29 +346,29 @@ public:
     void refresh() {
         switch (mode) {
             case 0:
-                green.turnOn();
-                yellow.turnOff();
-                red.turnOff();
+                green->turnOn();
+                yellow->turnOff();
+                red->turnOff();
                 break;
             case 1:
-                green.turnOff();
-                yellow.turnOn();
-                red.turnOff();
+                green->turnOff();
+                yellow->turnOn();
+                red->turnOff();
                 break;
             case 2:
-                green.turnOff();
-                yellow.turnOff();
-                red.turnOn();
+                green->turnOff();
+                yellow->turnOff();
+                red->turnOn();
                 break;
             case 3:
-                green.turnOn();
-                yellow.turnOn();
-                red.turnOff();
+                green->turnOn();
+                yellow->turnOn();
+                red->turnOff();
                 break;
-            case 2:
-                green.turnOff();
-                yellow.turnOn();
-                red.turnOn();
+            case 4:
+                green->turnOff();
+                yellow->turnOn();
+                red->turnOn();
                 break;
         }
     }
@@ -435,7 +427,7 @@ public:
         for (int i = 0; i < CELL_QUANTITY; i++) {
 
         }
-        Indication.refresh();
+        indication.refresh();
     }
 
 };
