@@ -30,6 +30,7 @@
 #define SCANNER_PIN 2  //  Pin for RFID-scanner
 #define OPEN_BUTTON_PIN 8  //  Pin for "Green" button
 #define DELETE_BUTTON_PIN 9  //  Pin for "Red" button
+#define CLOSE_BUTTON_PIN 10
 #define GREEN_LED_PIN 20
 #define YELLOW_LED_PIN 20
 #define RED_LED_PIN 20
@@ -297,6 +298,10 @@ public:
             open();
         }
     }
+
+    bool get_isOpen(){
+      return isOpen;
+    }
 };
 
 //  Class for RFID-scanner
@@ -381,8 +386,9 @@ class Schlocker {
     Cell *cells[CELL_QUANTITY];
     Scanner scanner;
     Indication indication;
-    Button *greenButton = new Button(OPEN_BUTTON_PIN);
-    Button *redButton = new Button(DELETE_BUTTON_PIN);
+    Button greenButton = Button(OPEN_BUTTON_PIN);
+    Button redButton = Button(DELETE_BUTTON_PIN);
+    Button closeButton = Button(CLOSE_BUTTON_PIN);
     short stat;  //  Section status: 0 - green, 1 - yellow, 2 - red, 3 - green/yellow, 4 - red/yellow
 public:
     Schlocker() {
@@ -403,7 +409,7 @@ public:
 
     //  Refresh system status
     void refresh() {
-        if (greenButton->isPushed()) {
+        if (greenButton.isPushed()) {
             debugger.act("Green button", "Pressed");
             unsigned long userId = scanner.scan();
             if (userId != 0) {
@@ -416,15 +422,23 @@ public:
                 }
             }
         }
-        if (redButton->isPushed()) {
+        if (redButton.isPushed()) {
             debugger.act("Red button", "Pressed");
-            int userId = scanner.scan();
+            unsigned long userId = scanner.scan();
             if (userId != 0) {
-                int cellId = cellSearch(userId);
+                unsigned short cellId = cellSearch(userId);
                 if (cellId != 0) {
-                    cells[cellId]->unreg();
+                    cells[cellId-1]->unreg();
                 }
             }
+        }
+        if (closeButton.isPushed()){
+          debugger.act("Close button", "Pressed");
+          for(int i = 0; i < CELL_QUANTITY; i++){
+            if(cells[i]->get_isOpen()){
+              cells[i]->close();
+            }
+          }
         }
         //indication.refresh();
     }
