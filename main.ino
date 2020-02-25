@@ -9,17 +9,21 @@
 
 //  ===INCLUDE SETTINGS===
 
-//For Arduino IDE
+//  For Arduino IDE
 #include <Wire.h>
 #include <SPI.h>
 #include <Servo.h>
 #include <Adafruit_PN532.h>
 
-
+//  For CLion
+//#include <Arduino.h>
+//#include <Wire/Wire.h>
+//#include <SPI/SPI.h>
+//#include <Servo.h>
 
 
 //  ===PROJECT SETTINGS===
-#define CELL_QUANTITY 3  //  Quantity of cells
+#define CELL_QUANTITY 4  //  Quantity of cells
 
 //  ===CIRCUIT SETTINGS===
 #define CELL_START_PIN 3  //  First pin for cells
@@ -34,7 +38,7 @@
 #define DEBUG true  //  Switch on debug (boolean)
 #define OPEN_ANGLE 90  //  Cell opening angle
 #define CLOSE_ANGLE 0  //  Cell closing angle (Default for first start)
-#define SCANNER_WAIT_TIME 10000  //  Total delay for scanning
+#define SCANNER_WAIT_TIME 1000  //  Total delay for scanning
 #define LOOP_DELAY 100  //  Delay in "loop"
 #define SERIAL_SPEED 9600
 
@@ -122,6 +126,7 @@ protected:
 
     Port(short _number) {
         number = _number;
+
     }
 };
 
@@ -167,6 +172,7 @@ public:
         servo = new Servo();
         servo->attach(number);
         servo->write(CLOSE_ANGLE);
+
     }
 
     //  Read current position of servo
@@ -182,22 +188,21 @@ public:
 
 // Class for ports with RFID-scanner
 class PortScanner : protected Port {
-    Adafruit_PN532 *scanner;
+    Adafruit_PN532 scanner = Adafruit_PN532(number, 100);
     uint8_t card;
     uint8_t uid[8];
     uint8_t uidLength;
 protected:
     PortScanner(short _number) : Port(_number) {
-        scanner = new Adafruit_PN532(number, 100);
-        scanner->begin();
-        if (!scanner->getFirmwareVersion()) {
+        scanner.begin();
+        if (!scanner.getFirmwareVersion()) {
             debugger.error("Scanner", "Didn't find");
         }
-        scanner->SAMConfig();
+        scanner.SAMConfig();
     }
 
-    bool isAvailable() {
-        card = scanner->readPassiveTargetID(PN532_MIFARE_ISO14443A, uid, &uidLength);
+    bool isReadable() {
+        card = scanner.readPassiveTargetID(PN532_MIFARE_ISO14443A, uid, &uidLength);
         return card;
     }
 
@@ -209,12 +214,12 @@ protected:
 //  Class for user with identity key
 class User {
     unsigned long uid=0;
-    public:
+public:
     unsigned long get_uid(){
-      return uid;
+        return uid;
     }
     void set_uid(unsigned long _uid){
-      uid=_uid;
+        uid=_uid;
     }
 };
 
@@ -224,7 +229,7 @@ public:
     Button(short _number) : PortButton(_number) {}
 
     //  Is button pressed in this moment
-    bool isPressed() {
+    bool isPushed() {
         return !read();
     }
 };
@@ -246,18 +251,18 @@ public:
 
 //  Component of section
 class Cell : protected PortServo {
-    int identity;  //  Number of cell
-    int lastOpenTime;  //  Time when cell was opened last time
-    int registrationTime;  //  Time when cell was registered
-    bool isOpen;
+    unsigned short identity;  //  Number of cell
+    int lastOpenTime=0;  //  Time when cell was opened last time
+    int registrationTime=0;  //  Time when cell was registered
+    bool isOpen=false;
     User user;
 public:
-    Cell(int _number) : PortServo(_number) {
-        identity = _number + CELL_START_PIN;
+    Cell(short _number) : PortServo(_number + CELL_START_PIN) {
+        identity = number - CELL_START_PIN;
     }
 
     //  Get unique user id
-    int userId() {
+    unsigned long userId() {
         return user.get_uid();
     }
 
@@ -285,7 +290,7 @@ public:
     }
 
     //  Register new user for cell
-    void reg(int userIdentity, bool doOpen = true) {
+    void reg(unsigned long userIdentity, bool doOpen = true) {
         debugger.act("Cell", "Registration", identity, false);
         user.set_uid(userIdentity);
         if (doOpen) {
@@ -300,7 +305,7 @@ public:
     Scanner() : PortScanner(SCANNER_PIN) {}
 
     bool isAvailable() {
-        return isAvailable();
+        return isReadable();
     }
 
     //  Read current value
@@ -312,31 +317,28 @@ public:
     unsigned long scan() {
         debugger.act("Scanner", "Start scanning", -1, false);
         unsigned long startTime = millis();  //  Variable for timer
+        delay(1);
         while (millis() - startTime <= SCANNER_WAIT_TIME) {
             if (isAvailable()) {
                 unsigned long uid = read();
                 debugger.act("Scanner", "End scanning");
                 return uid;
             }
+            //delay(LOOP_DELAY / 10);
         }
         debugger.act("Scanner", "End scanning (timeout)");
-        return -1;
+        return 0;
     }
 
 };
 
 //  Class for all led indication
 class Indication {
-    Bulb *green;
-    Bulb *yellow;
-    Bulb *red;
+    Bulb green = Bulb(GREEN_LED_PIN);
+    Bulb yellow = Bulb(YELLOW_LED_PIN);
+    Bulb red = Bulb(RED_LED_PIN);
     short mode;
 public:
-    Indication() {
-        green = new Bulb(GREEN_LED_PIN);
-        yellow = new Bulb(YELLOW_LED_PIN);
-        red = new Bulb(RED_LED_PIN);
-    }
 
     //  Set indication mode
     void set_mode(short value) {
@@ -346,29 +348,29 @@ public:
     void refresh() {
         switch (mode) {
             case 0:
-                green->turnOn();
-                yellow->turnOff();
-                red->turnOff();
+                green.turnOn();
+                yellow.turnOff();
+                red.turnOff();
                 break;
             case 1:
-                green->turnOff();
-                yellow->turnOn();
-                red->turnOff();
+                green.turnOff();
+                yellow.turnOn();
+                red.turnOff();
                 break;
             case 2:
-                green->turnOff();
-                yellow->turnOff();
-                red->turnOn();
+                green.turnOff();
+                yellow.turnOff();
+                red.turnOn();
                 break;
             case 3:
-                green->turnOn();
-                yellow->turnOn();
-                red->turnOff();
+                green.turnOn();
+                yellow.turnOn();
+                red.turnOff();
                 break;
             case 4:
-                green->turnOff();
-                yellow->turnOn();
-                red->turnOn();
+                green.turnOff();
+                yellow.turnOn();
+                red.turnOn();
                 break;
         }
     }
@@ -390,49 +392,46 @@ public:
     }
 
     //  Search cell with userId
-    int cellSearch(int userId) {
+    unsigned short cellSearch(unsigned long userId) {
         for (int i = 0; i < CELL_QUANTITY; ++i) {
             if (cells[i]->userId() == userId) {
-                return i;
+                return i+1;
             }
         }
-        return -1;
+        return 0;
     }
 
     //  Refresh system status
     void refresh() {
-        if (greenButton->isPressed()) {
+        if (greenButton->isPushed()) {
             debugger.act("Green button", "Pressed");
-            int userId = scanner.scan();
-            if (userId != -1) {
-                int cellId = cellSearch(userId);
-                if (cellId != -1) {
-                    cells[cellId]->open();
+            unsigned long userId = scanner.scan();
+            if (userId != 0) {
+                unsigned short cellId = cellSearch(userId);
+                if (cellId != 0) {
+                    cells[cellId-1]->open();
                 } else {
-                    cells[cellSearch(0)]->reg(userId);
+                    cells[cellSearch(0)-1]->reg(userId);
 
                 }
             }
         }
-        if (redButton->isPressed()) {
+        if (redButton->isPushed()) {
             debugger.act("Red button", "Pressed");
             int userId = scanner.scan();
-            if (userId != -1) {
+            if (userId != 0) {
                 int cellId = cellSearch(userId);
-                if (cellId != -1) {
+                if (cellId != 0) {
                     cells[cellId]->unreg();
                 }
             }
         }
-        for (int i = 0; i < CELL_QUANTITY; i++) {
-
-        }
-        indication.refresh();
+        //indication.refresh();
     }
 
 };
 
-Schlocker *schlocker;  //  It should be with "*"
+Schlocker *schlocker;
 
 void setup() {
     Serial.begin(SERIAL_SPEED);
