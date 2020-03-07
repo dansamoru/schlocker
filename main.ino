@@ -1,10 +1,11 @@
 /*
- * PROJECT SCHLOCKER
- * v.0.1.10
- *
- * Developer: Samoilov Daniil © 2020
- * VK: @dansamoru
- */
+*
+* PROJECT SCHLOCKER
+* v.0.1.11
+*
+* Developer: Samoilov Daniil © 2020
+* VK: @dansamoru
+*/
 
 
 
@@ -49,6 +50,13 @@
 
 
 //  ===CODE===
+
+// ==SYSTEM==
+
+class System{
+public:
+    //EEPROM here
+};
 
 //  Class for debugging messages
 class Debugger {
@@ -124,47 +132,46 @@ public:
 
 Debugger debugger;
 
+//  ==PORTS==
+
 //  Basic class for all components
 class Port {
 protected:
-    short number;
+    unsigned short portNumber;
 
-    Port(short _number) {
-        number = _number;
-
-    }
+    explicit Port(unsigned short _portNumber) : portNumber(_portNumber) {}
 };
 
 //  Class for ports with "INPUT" mode
 class PortIn : protected Port {
 protected:
-    PortIn(short _number) : Port(_number) {
-        pinMode(number, INPUT);
+    explicit PortIn(unsigned short _portNumber) : Port(_portNumber) {
+        pinMode(portNumber, INPUT);
     }
 };
 
 //  Class for ports with "OUTPUT" mode
 class PortOut : protected Port {
 protected:
-    PortOut(short _number) : Port(_number) {
-        pinMode(number, OUTPUT);
+    explicit PortOut(unsigned short _number) : Port(_number) {
+        pinMode(portNumber, OUTPUT);
     }
 
     void set(bool value) {
-        digitalWrite(number, value);
+        digitalWrite(portNumber, value);
     }
 };
 
 //  Class for ports with "INPUT_PULLUP" mode
 class PortButton : protected Port {
 protected:
-    PortButton(short _number) : Port(_number) {
-        pinMode(number, INPUT_PULLUP);
-        digitalWrite(number, HIGH);
+    explicit PortButton(unsigned short _portNumber) : Port(_portNumber) {
+        pinMode(portNumber, INPUT_PULLUP);
+        digitalWrite(portNumber, HIGH);
     }
 
     bool read() {
-        return digitalRead(number);
+        return digitalRead(portNumber);
     }
 };
 
@@ -172,12 +179,15 @@ protected:
 class PortServo : protected Port {
     Servo *servo;
 public:
-    PortServo(short _number) : Port(_number) {
-
+    explicit PortServo(unsigned short _portNumber) : Port(_portNumber) {
         servo = new Servo();
-        servo->attach(number);
-        servo->write(DEFAULT_POSITION==0?CLOSE_ANGLE:OPEN_ANGLE);
+        servo->attach(portNumber);
 
+#if DEFAULT_POSITION
+        servo->write(OPEN_ANGLE);
+#else
+        servo->write(CLOSE_ANGLE);
+#endif
     }
 
     //  Read current position of servo
@@ -193,12 +203,12 @@ public:
 
 // Class for ports with RFID-scanner
 class PortScanner : protected Port {
-    Adafruit_PN532 scanner = Adafruit_PN532(number, 100);
-    uint8_t card;
-    uint8_t uid[8];
-    uint8_t uidLength;
+    Adafruit_PN532 scanner = Adafruit_PN532(portNumber, 100);
+    uint8_t card{};
+    uint8_t uid[8]{};
+    uint8_t uidLength{};
 protected:
-    PortScanner(short _number) : Port(_number) {
+    PortScanner(unsigned short _portNumber) : Port(_portNumber) {
         scanner.begin();
         if (!scanner.getFirmwareVersion()) {
             debugger.error("Scanner", "Didn't find");
@@ -218,36 +228,38 @@ protected:
 
 //  Class for user with identity key
 class User {
-    unsigned long uid=0;
+    unsigned long uid = 0;
 public:
-    unsigned long get_uid(){
+    unsigned long get_uid() {
         return uid;
     }
-    void set_uid(unsigned long _uid){
-        uid=_uid;
+
+    void set_uid(unsigned long _uid) {
+        uid = _uid;
     }
 };
 
 
-class Buzzer :protected PortOut{
-  public:
-  Buzzer(unsigned short _number): PortOut(_number){}
-  play(unsigned short mode){
-    debugger.act("Buzzer", "Play");
-    switch(mode){
-      case 0:
-      tone(BUZZER_TON_1,number, 500);
-      break;
+class Buzzer : protected PortOut {
+public:
+    explicit Buzzer(unsigned short _portNumber) : PortOut(_portNumber) {}
+
+    void play(unsigned short mode) {
+        debugger.act("Buzzer", "Play");
+        switch (mode) {
+            case 0:
+                tone(BUZZER_TON_1, portNumber, 500);
+                break;
+        }
     }
-  }
 };
 
-Buzzer buzzer =Buzzer(BUZZER_PIN);
+Buzzer buzzer = Buzzer(BUZZER_PIN);
 
 //  Class for buttons
 class Button : protected PortButton {
 public:
-    Button(unsigned short _number) : PortButton(_number) {}
+    explicit Button(unsigned short _portNumber) : PortButton(_portNumber) {}
 
     //  Is button pressed in this moment
     bool isPushed() {
@@ -258,7 +270,7 @@ public:
 //  Class for indication bulbs
 class Bulb : protected PortOut {
 public:
-    Bulb(short _number) : PortOut(_number){}
+    explicit Bulb(unsigned short _portNumber) : PortOut(_portNumber) {}
 
     void turnOn() {
         set(HIGH);
@@ -273,13 +285,13 @@ public:
 //  Component of section
 class Cell : protected PortServo {
     unsigned short identity;  //  Number of cell
-    int lastOpenTime=0;  //  Time when cell was opened last time
-    int registrationTime=0;  //  Time when cell was registered
-    bool isOpen=false;
+    int lastOpenTime = 0;  //  Time when cell was opened last time
+    int registrationTime = 0;  //  Time when cell was registered
+    bool isOpen = false;
     User user;
 public:
-    Cell(short _number) : PortServo(_number + CELL_START_PIN) {
-        identity = number - CELL_START_PIN;
+    explicit Cell(short _portNumber) : PortServo(_portNumber + CELL_START_PIN) {
+        identity = portNumber - CELL_START_PIN;
     }
 
     //  Get unique user id
@@ -319,15 +331,15 @@ public:
         }
     }
 
-    bool get_isOpen(){
-      return isOpen;
+    bool get_isOpen() {
+        return isOpen;
     }
 };
 
 //  Class for RFID-scanner
 class Scanner : protected PortScanner {
 public:
-    Scanner() : PortScanner(SCANNER_PIN) {}
+    Scanner(unsigned short _portNumber) : PortScanner(_portNumber) {}
 
     bool isAvailable() {
         return isReadable();
@@ -340,7 +352,7 @@ public:
 
     //  The cycle of scanning
     unsigned long scan() {
-      buzzer.play(0);
+        buzzer.play(0);
         debugger.act("Scanner", "Start scanning", -1, false);
         unsigned long startTime = millis();  //  Variable for timer
         delay(1);
@@ -363,11 +375,11 @@ class Indication {
     Bulb green = Bulb(GREEN_LED_PIN);
     Bulb yellow = Bulb(YELLOW_LED_PIN);
     Bulb red = Bulb(RED_LED_PIN);
-    short mode = 0;
+    unsigned short mode = 0;
 public:
 
     //  Set indication mode
-    void set_mode(short value) {
+    void set_mode(unsigned short value) {
         mode = value;
     }
 
@@ -405,12 +417,12 @@ public:
 //  Main class for section
 class Schlocker {
     Cell *cells[CELL_QUANTITY];
-    Scanner scanner;
+    Scanner scanner = Scanner(SCANNER_PIN);
     Indication indication;
     Button greenButton = Button(OPEN_BUTTON_PIN);
     Button redButton = Button(DELETE_BUTTON_PIN);
     Button closeButton = Button(CLOSE_BUTTON_PIN);
-    unsigned short stat =0;  //  Section status: 0 - green, 1 - yellow, 2 - red, 3 - green/yellow, 4 - red/yellow
+    unsigned short stat = 0;  //  Section status: 0 - green, 1 - yellow, 2 - red, 3 - green/yellow, 4 - red/yellow
 public:
     Schlocker() {
         for (int i = 0; i < CELL_QUANTITY; ++i) {
@@ -423,39 +435,39 @@ public:
     unsigned short cellSearch(unsigned long userId) {
         for (int i = 0; i < CELL_QUANTITY; ++i) {
             if (cells[i]->userId() == userId) {
-                return i+1;
+                return i + 1;
             }
         }
         return 0;
     }
 
-    void updateStat(){
-            bool isGreen=false;
-      for(int i = 0; i <CELL_QUANTITY; i++){
-        if(cells[i]->userId()==0){
-          isGreen = true;
+    void updateStat() {
+        bool isGreen = false;
+        for (int i = 0; i < CELL_QUANTITY; i++) {
+            if (cells[i]->userId() == 0) {
+                isGreen = true;
+            }
         }
-      }
-      if(isGreen){
-        stat = 0;
-      }else{
-        stat = 2;
-      }
-      indication.set_mode(stat);
+        if (isGreen) {
+            stat = 0;
+        } else {
+            stat = 2;
+        }
+        indication.set_mode(stat);
     }
 
     //  Refresh system status
     void refresh() {
-updateStat();
+        updateStat();
         if (greenButton.isPushed()) {
             debugger.act("Green button", "Pressed");
             unsigned long userId = scanner.scan();
             if (userId != 0) {
                 unsigned short cellId = cellSearch(userId);
                 if (cellId != 0) {
-                    cells[cellId-1]->open();
+                    cells[cellId - 1]->open();
                 } else {
-                    cells[cellSearch(0)-1]->reg(userId);
+                    cells[cellSearch(0) - 1]->reg(userId);
 
                 }
             }
@@ -467,32 +479,31 @@ updateStat();
             if (userId != 0) {
                 unsigned short cellId = cellSearch(userId);
                 if (cellId != 0) {
-                    cells[cellId-1]->unreg();
+                    cells[cellId - 1]->unreg();
                 }
             }
         }
-        if (closeButton.isPushed()){
-          debugger.act("Close button", "Pressed");
-          for(int i = 0; i < CELL_QUANTITY; i++){
-            if(cells[i]->get_isOpen()){
-              cells[i]->close();
+        if (closeButton.isPushed()) {
+            debugger.act("Close button", "Pressed");
+            for (int i = 0; i < CELL_QUANTITY; i++) {
+                if (cells[i]->get_isOpen()) {
+                    cells[i]->close();
+                }
             }
-          }
         }
         indication.refresh();
     }
 
 };
 
-Schlocker *schlocker;
+Schlocker schlocker;
 
 void setup() {
     Serial.begin(SERIAL_SPEED);
-    schlocker = new Schlocker();
     debugger.loaded();
 }
 
 void loop() {
-    schlocker->refresh();
+    schlocker.refresh();
     delay(LOOP_DELAY);
 }
