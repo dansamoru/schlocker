@@ -1,5 +1,6 @@
 /*
  * PROJECT SCHLOCKER
+ * v.0.1.10
  *
  * Developer: Samoilov Daniil © 2020
  * VK: @dansamoru
@@ -16,7 +17,6 @@
 #include <Adafruit_PN532.h>
 
 //  For CLion
-//#include <Arduino.h>
 //#include <Wire/Wire.h>
 //#include <SPI/SPI.h>
 //#include <Servo.h>
@@ -24,24 +24,28 @@
 
 //  ===PROJECT SETTINGS===
 #define CELL_QUANTITY 4  //  Quantity of cells
+#define DEFAULT_POSITION 0 // 0 - CLOSE, 1 - OPEN
 
 //  ===CIRCUIT SETTINGS===
 #define CELL_START_PIN 3  //  First pin for cells
 #define SCANNER_PIN 2  //  Pin for RFID-scanner
-#define OPEN_BUTTON_PIN 8  //  Pin for "Green" button
-#define DELETE_BUTTON_PIN 9  //  Pin for "Red" button
-#define CLOSE_BUTTON_PIN 10
-#define GREEN_LED_PIN 20
-#define YELLOW_LED_PIN 20
-#define RED_LED_PIN 20
+#define OPEN_BUTTON_PIN 7  //  Pin for "Green" button
+#define DELETE_BUTTON_PIN 8  //  Pin for "Red" button
+#define CLOSE_BUTTON_PIN 9
+#define GREEN_LED_PIN 13
+#define YELLOW_LED_PIN 10
+#define RED_LED_PIN 11
+#define BUZZER_PIN A0
 
 //  ===HARDWARE SETTINGS===
 #define DEBUG true  //  Switch on debug (boolean)
 #define OPEN_ANGLE 90  //  Cell opening angle
-#define CLOSE_ANGLE 0  //  Cell closing angle (Default for first start)
+#define CLOSE_ANGLE 0  //  Cell closing angle
 #define SCANNER_WAIT_TIME 1000  //  Total delay for scanning
 #define LOOP_DELAY 100  //  Delay in "loop"
 #define SERIAL_SPEED 9600
+#define BUZZER_TON_1 4200
+#define BUZZER_TON_2 8400
 
 
 //  ===CODE===
@@ -172,7 +176,7 @@ public:
 
         servo = new Servo();
         servo->attach(number);
-        servo->write(CLOSE_ANGLE);
+        servo->write(DEFAULT_POSITION==0?CLOSE_ANGLE:OPEN_ANGLE);
 
     }
 
@@ -224,10 +228,26 @@ public:
     }
 };
 
+
+class Buzzer :protected PortOut{
+  public:
+  Buzzer(unsigned short _number): PortOut(_number){}
+  play(unsigned short mode){
+    debugger.act("Buzzer", "Play");
+    switch(mode){
+      case 0:
+      tone(BUZZER_TON_1,number, 500);
+      break;
+    }
+  }
+};
+
+Buzzer buzzer =Buzzer(BUZZER_PIN);
+
 //  Class for buttons
 class Button : protected PortButton {
 public:
-    Button(short _number) : PortButton(_number) {}
+    Button(unsigned short _number) : PortButton(_number) {}
 
     //  Is button pressed in this moment
     bool isPushed() {
@@ -320,6 +340,7 @@ public:
 
     //  The cycle of scanning
     unsigned long scan() {
+      buzzer.play(0);
         debugger.act("Scanner", "Start scanning", -1, false);
         unsigned long startTime = millis();  //  Variable for timer
         delay(1);
@@ -342,7 +363,7 @@ class Indication {
     Bulb green = Bulb(GREEN_LED_PIN);
     Bulb yellow = Bulb(YELLOW_LED_PIN);
     Bulb red = Bulb(RED_LED_PIN);
-    short mode;
+    short mode = 0;
 public:
 
     //  Set indication mode
@@ -389,12 +410,13 @@ class Schlocker {
     Button greenButton = Button(OPEN_BUTTON_PIN);
     Button redButton = Button(DELETE_BUTTON_PIN);
     Button closeButton = Button(CLOSE_BUTTON_PIN);
-    short stat;  //  Section status: 0 - green, 1 - yellow, 2 - red, 3 - green/yellow, 4 - red/yellow
+    unsigned short stat =0;  //  Section status: 0 - green, 1 - yellow, 2 - red, 3 - green/yellow, 4 - red/yellow
 public:
     Schlocker() {
         for (int i = 0; i < CELL_QUANTITY; ++i) {
             cells[i] = new Cell(i);
         }
+        indication.refresh();
     }
 
     //  Search cell with userId
@@ -407,8 +429,24 @@ public:
         return 0;
     }
 
+    void updateStat(){
+            bool isGreen=false;
+      for(int i = 0; i <CELL_QUANTITY; i++){
+        if(cells[i]->userId()==0){
+          isGreen = true;
+        }
+      }
+      if(isGreen){
+        stat = 0;
+      }else{
+        stat = 2;
+      }
+      indication.set_mode(stat);
+    }
+
     //  Refresh system status
     void refresh() {
+updateStat();
         if (greenButton.isPushed()) {
             debugger.act("Green button", "Pressed");
             unsigned long userId = scanner.scan();
@@ -422,6 +460,7 @@ public:
                 }
             }
         }
+        redButton.isPushed();
         if (redButton.isPushed()) {
             debugger.act("Red button", "Pressed");
             unsigned long userId = scanner.scan();
@@ -440,7 +479,7 @@ public:
             }
           }
         }
-        //indication.refresh();
+        indication.refresh();
     }
 
 };
