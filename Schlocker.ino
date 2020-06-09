@@ -1,7 +1,7 @@
 /*
 *
 * PROJECT SCHLOCKER
-* v.0.2.0.2
+* v.0.2.0.4
 *
 * Developer: Samoilov Daniil © 2020
 * VK: @dansamoru
@@ -270,7 +270,7 @@ class Cell : protected LockerPort {
     bool isOpen = false;
     User user;
 public:
-    explicit Cell(short _portNumber) : LockerPort(_portNumber + CELL_START_PIN) {
+    explicit Cell(short _portNumber) : LockerPort(_portNumber + CELL_START_PIN, _portNumber + CELL_SENSOR_START_PIN) {
         identity = portNumber - CELL_START_PIN;
     }
 
@@ -345,14 +345,14 @@ public:
 
 //  Class for all led indication
 class Indication {
-    Bulb green = Bulb(GREEN_LED_PIN);
-    Bulb yellow = Bulb(YELLOW_LED_PIN);
-    Bulb red = Bulb(RED_LED_PIN);
+    Led green(GREEN_LED_PIN);
+    Led yellow(YELLOW_LED_PIN);
+    Led red(RED_LED_PIN);
     unsigned short mode = 0;
 public:
 
     //  Set indication mode
-    void set_mode(unsigned short value) {
+    void setMode(unsigned short value) {
         mode = value;
     }
 
@@ -389,7 +389,7 @@ public:
 
 //  Main class for section
 class Schlocker {
-    Cell *cells[CELL_QUANTITY];
+    Cell cells[CELL_QUANTITY];
     Scanner scanner = Scanner(SCANNER_PIN);
     Indication indication;
     Button greenButton = Button(OPEN_BUTTON_PIN);
@@ -399,7 +399,7 @@ class Schlocker {
 public:
     Schlocker() {
         for (int i = 0; i < CELL_QUANTITY; ++i) {
-            cells[i] = new Cell(i);
+            cells[i] = Cell(i);
         }
         indication.refresh();
     }
