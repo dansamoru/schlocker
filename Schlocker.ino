@@ -1,52 +1,40 @@
 /*
 *
 * PROJECT SCHLOCKER
-* v.0.1.11
+* v.0.2.0.2
 *
 * Developer: Samoilov Daniil © 2020
 * VK: @dansamoru
 */
 
 
-
 //  ===INCLUDE SETTINGS===
 
-//  For Arduino IDE
 #include <Wire.h>
 #include <SPI.h>
-#include <Servo.h>
 #include <Adafruit_PN532.h>
-
-//  For CLion
-//#include <Wire/Wire.h>
-//#include <SPI/SPI.h>
-//#include <Servo.h>
 
 
 //  ===PROJECT SETTINGS===
-#define CELL_QUANTITY 4  //  Quantity of cells
-#define DEFAULT_POSITION 0 // 0 - CLOSE, 1 - OPEN
+#define CELL_QUANTITY 4
 
 //  ===CIRCUIT SETTINGS===
-#define CELL_START_PIN 3  //  First pin for cells
-#define SCANNER_PIN 2  //  Pin for RFID-scanner
-#define OPEN_BUTTON_PIN 7  //  Pin for "Green" button
-#define DELETE_BUTTON_PIN 8  //  Pin for "Red" button
-#define CLOSE_BUTTON_PIN 9
-#define GREEN_LED_PIN 13
-#define YELLOW_LED_PIN 10
-#define RED_LED_PIN 11
-#define BUZZER_PIN A0
+#define LOCKER_START_PIN 9  //  First pin for cells
+#define LOCKER_SENSOR_START_PIN 5  //  First pin for checkers
+#define SCANNER_PIN 19  //  Pin for RFID-scanner
+#define OPEN_BUTTON_PIN 14  //  Pin for "Green" button
+#define DELETE_BUTTON_PIN 15  //  Pin for "Red" button
+#define GREEN_LED_PIN 2
+#define YELLOW_LED_PIN 3
+#define RED_LED_PIN 4
 
 //  ===HARDWARE SETTINGS===
 #define DEBUG true  //  Switch on debug (boolean)
-#define OPEN_ANGLE 90  //  Cell opening angle
-#define CLOSE_ANGLE 0  //  Cell closing angle
 #define SCANNER_WAIT_TIME 1000  //  Total delay for scanning
 #define LOOP_DELAY 100  //  Delay in "loop"
 #define SERIAL_SPEED 9600
-#define BUZZER_TON_1 4200
-#define BUZZER_TON_2 8400
+#define LOCKER_MAX_TIME 4000 //  Max time for locker opening in milliseconds
+#define LOCKER_SENSOR_DEFAULT_VALUE false  //  Default value when locker is closed
 
 
 //  ===CODE===
@@ -62,20 +50,16 @@ public:
 class Debugger {
     bool lastEnds = true;  //  Had last flag "end"
 public:
-
     //  Free RAM on the board
 #if DEBUG
-
-    int freeRam() {
+    static int freeRam() {
         extern int __heap_start, *__brkval;
         int v;
         return (int) &v - (__brkval == 0 ? (int) &__heap_start : (int) __brkval);
     }
-
 #endif
-
     //  First message
-    void loaded() {
+    static void loaded() {
 #if DEBUG
         if (DEBUG) {
             Serial.println("###LOADED###");
@@ -86,8 +70,7 @@ public:
         }
 #endif
     }
-
-    //  Acr logs
+    //  Act logs
     void act(String object, String act, int number = -1, bool ending = true) {
 #if DEBUG
         if (lastEnds) {
@@ -112,7 +95,7 @@ public:
     }
 
     //  Error logs
-    void error(String object, String error, int number = -1) {
+    static void error(String object, String error, int number = -1) {
 #if DEBUG
         Serial.println("#ERROR#");
         Serial.print("Object: ");
@@ -129,7 +112,6 @@ public:
 #endif
     }
 };
-
 Debugger debugger;
 
 //  ==PORTS==
@@ -138,22 +120,21 @@ Debugger debugger;
 class Port {
 protected:
     unsigned short portNumber;
-
     explicit Port(unsigned short _portNumber) : portNumber(_portNumber) {}
 };
 
 //  Class for ports with "INPUT" mode
-class PortIn : protected Port {
+class InPort : protected Port {
 protected:
-    explicit PortIn(unsigned short _portNumber) : Port(_portNumber) {
+    explicit InPort(unsigned short _portNumber) : Port(_portNumber) {
         pinMode(portNumber, INPUT);
     }
 };
 
 //  Class for ports with "OUTPUT" mode
-class PortOut : protected Port {
+class OutPort : protected Port {
 protected:
-    explicit PortOut(unsigned short _number) : Port(_number) {
+    explicit OutPort(unsigned short _number) : Port(_number) {
         pinMode(portNumber, OUTPUT);
     }
 
@@ -163,9 +144,9 @@ protected:
 };
 
 //  Class for ports with "INPUT_PULLUP" mode
-class PortButton : protected Port {
+class ButtonPort : protected Port {
 protected:
-    explicit PortButton(unsigned short _portNumber) : Port(_portNumber) {
+    explicit ButtonPort(unsigned short _portNumber) : Port(_portNumber) {
         pinMode(portNumber, INPUT_PULLUP);
         digitalWrite(portNumber, HIGH);
     }
@@ -175,30 +156,27 @@ protected:
     }
 };
 
-//  Class for ports with servos
-class PortServo : protected Port {
-    Servo *servo;
+//  Class for lockers
+class LockerPort :  protected OutPort, protected InPort{
 public:
-    explicit PortServo(unsigned short _portNumber) : Port(_portNumber) {
-        servo = new Servo();
-        servo->attach(portNumber);
+    explicit LockerPort(unsigned short _lockerPortNumber, unsigned short _sensorPortNumber) :
+            OutPort(_lockerPortNumber),
+            InPort(_sensorPortNumber){}
 
-#if DEFAULT_POSITION
-        servo->write(OPEN_ANGLE);
-#else
-        servo->write(CLOSE_ANGLE);
-#endif
+    void open(unsigned int milliseconds = 1000) {
+        if(milliseconds > LOCKER_MAX_TIME){
+            return;
+        }
+        digitalWrite(OutPort::portNumber, HIGH);
+        delay(milliseconds); // TODO: переделать задержку
+        digitalWrite(OutPort::portNumber, LOW);
     }
 
-    //  Read current position of servo
-    short read() {
-        return servo->read();
+    bool is_open() {
+        return (digitalRead(InPort::portNumber)!=LOCKER_SENSOR_DEFAULT_VALUE);
     }
 
-    //  Write new position for servo
-    void write(short angle) {
-        servo->write(angle);
-    }
+
 };
 
 // Class for ports with RFID-scanner
@@ -208,7 +186,7 @@ class PortScanner : protected Port {
     uint8_t uid[8]{};
     uint8_t uidLength{};
 protected:
-    PortScanner(unsigned short _portNumber) : Port(_portNumber) {
+    explicit PortScanner(unsigned short _portNumber) : Port(_portNumber) {
         scanner.begin();
         if (!scanner.getFirmwareVersion()) {
             debugger.error("Scanner", "Didn't find");
@@ -228,9 +206,9 @@ protected:
 
 //  Class for user with identity key
 class User {
-    unsigned long uid = 0;
+    unsigned long uid;
 public:
-    unsigned long get_uid() {
+    unsigned long get_uid() const {
         return uid;
     }
 
@@ -239,10 +217,10 @@ public:
     }
 };
 
-
-class Buzzer : protected PortOut {
+/*
+class Buzzer : protected OutPort {
 public:
-    explicit Buzzer(unsigned short _portNumber) : PortOut(_portNumber) {}
+    explicit Buzzer(unsigned short _portNumber) : OutPort(_portNumber) {}
 
     void play(unsigned short mode) {
         debugger.act("Buzzer", "Play");
@@ -253,13 +231,13 @@ public:
         }
     }
 };
-
 Buzzer buzzer = Buzzer(BUZZER_PIN);
+ */
 
 //  Class for buttons
-class Button : protected PortButton {
+class Button : protected ButtonPort {
 public:
-    explicit Button(unsigned short _portNumber) : PortButton(_portNumber) {}
+    explicit Button(unsigned short _portNumber) : ButtonPort(_portNumber) {}
 
     //  Is button pressed in this moment
     bool isPushed() {
@@ -268,9 +246,9 @@ public:
 };
 
 //  Class for indication bulbs
-class Bulb : protected PortOut {
+class Bulb : protected OutPort {
 public:
-    explicit Bulb(unsigned short _portNumber) : PortOut(_portNumber) {}
+    explicit Bulb(unsigned short _portNumber) : OutPort(_portNumber) {}
 
     void turnOn() {
         set(HIGH);
@@ -283,14 +261,14 @@ public:
 };
 
 //  Component of section
-class Cell : protected PortServo {
+class Cell : protected LockerPort {
     unsigned short identity;  //  Number of cell
     int lastOpenTime = 0;  //  Time when cell was opened last time
     int registrationTime = 0;  //  Time when cell was registered
     bool isOpen = false;
     User user;
 public:
-    explicit Cell(short _portNumber) : PortServo(_portNumber + CELL_START_PIN) {
+    explicit Cell(short _portNumber) : LockerPort(_portNumber + CELL_START_PIN) {
         identity = portNumber - CELL_START_PIN;
     }
 
