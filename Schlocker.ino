@@ -144,9 +144,9 @@ protected:
 };
 
 //  Class for ports with "INPUT_PULLUP" mode
-class ButtonPort : protected Port {
+class PullupPort : protected Port {
 protected:
-    explicit ButtonPort(unsigned short _portNumber) : Port(_portNumber) {
+    explicit PullupPort(unsigned short _portNumber) : Port(_portNumber) {
         pinMode(portNumber, INPUT_PULLUP);
         digitalWrite(portNumber, HIGH);
     }
@@ -163,6 +163,7 @@ public:
             OutPort(_lockerPortNumber),
             InPort(_sensorPortNumber){}
 
+    //  Open locker
     void open(unsigned int milliseconds = 1000) {
         if(milliseconds > LOCKER_MAX_TIME){
             return;
@@ -172,8 +173,9 @@ public:
         digitalWrite(OutPort::portNumber, LOW);
     }
 
+    //  Is locker opened
     bool is_open() {
-        return (digitalRead(InPort::portNumber)!=LOCKER_SENSOR_DEFAULT_VALUE);
+        return (digitalRead(InPort::portNumber)!=LOCKER_SENSOR_DEFAULT_VALUE);  // Compare with default value
     }
 
 
@@ -235,9 +237,9 @@ Buzzer buzzer = Buzzer(BUZZER_PIN);
  */
 
 //  Class for buttons
-class Button : protected ButtonPort {
+class Button : protected PullupPort {
 public:
-    explicit Button(unsigned short _portNumber) : ButtonPort(_portNumber) {}
+    explicit Button(unsigned short _portNumber) : PullupPort(_portNumber) {}
 
     //  Is button pressed in this moment
     bool isPushed() {
@@ -246,9 +248,9 @@ public:
 };
 
 //  Class for indication bulbs
-class Bulb : protected OutPort {
+class Led : protected OutPort {
 public:
-    explicit Bulb(unsigned short _portNumber) : OutPort(_portNumber) {}
+    explicit Led(unsigned short _portNumber) : OutPort(_portNumber) {}
 
     void turnOn() {
         set(HIGH);
@@ -263,8 +265,8 @@ public:
 //  Component of section
 class Cell : protected LockerPort {
     unsigned short identity;  //  Number of cell
-    int lastOpenTime = 0;  //  Time when cell was opened last time
-    int registrationTime = 0;  //  Time when cell was registered
+    unsigned int lastOpenTime = 0;  //  Time when cell was opened last time
+    unsigned int registrationTime = 0;  //  Time when cell was registered
     bool isOpen = false;
     User user;
 public:
@@ -277,18 +279,11 @@ public:
         return user.get_uid();
     }
 
-    //  Close cell
-    void close() {
-        debugger.act("Cell", "Close", identity);
-        isOpen = false;
-        write(CLOSE_ANGLE);
-    }
-
     //  Open cell
     void open() {
         debugger.act("Cell", "Open", identity);
         isOpen = true;
-        write(OPEN_ANGLE);
+        open();
     }
 
     //  Unregister recorded user
