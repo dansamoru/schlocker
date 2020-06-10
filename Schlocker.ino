@@ -13,6 +13,7 @@
 #include <Wire.h>
 #include <SPI.h>
 #include <Adafruit_PN532.h>
+#include <EEPROM.h>
 
 
 //  ===PROJECT SETTINGS===
@@ -41,9 +42,22 @@
 
 // ==SYSTEM==
 
-class System{
+static class System{
 public:
-    //EEPROM here
+    class Memory{
+        public:
+           unsigned long get_userId(cellNumber){ // Get user id from EEPROM
+
+           }
+           void set_userId(cellNumber, userId){ // Set user id from EEPROM
+
+           }
+
+           void del_userId(cellNumber){
+             set_userId(cellNumber, null);
+           }
+
+    }
 };
 
 //  Class for debugging messages
@@ -206,19 +220,6 @@ protected:
     }
 };
 
-//  Class for user with identity key
-class User {
-    unsigned long uid;
-public:
-    unsigned long get_uid() const {
-        return uid;
-    }
-
-    void set_uid(unsigned long _uid) {
-        uid = _uid;
-    }
-};
-
 /*
 class Buzzer : protected OutPort {
 public:
@@ -264,42 +265,39 @@ public:
 
 //  Component of section
 class Cell : protected LockerPort {
-    unsigned short identity;  //  Number of cell
-    unsigned int lastOpenTime = 0;  //  Time when cell was opened last time
-    unsigned int registrationTime = 0;  //  Time when cell was registered
-    bool isOpen = false;
-    User user;
+    unsigned short cellNumber;
+    //unsigned int lastOpenTime = 0;  //  Time when cell was opened last time
+    //unsigned int registrationTime = 0;  //  Time when cell was registered
 public:
     explicit Cell(short _portNumber) : LockerPort(_portNumber + CELL_START_PIN, _portNumber + CELL_SENSOR_START_PIN) {
-        identity = portNumber - CELL_START_PIN;
+        cellNumber = portNumber - CELL_START_PIN;
     }
 
     //  Get unique user id
     unsigned long userId() {
-        return user.get_uid();
+        return System.Memory.get_userId(cellNumber);
     }
 
     //  Open cell
     void open() {
-        debugger.act("Cell", "Open", identity);
-        isOpen = true;
+        debugger.act("Cell", "Open", cellNumber);
         open();
     }
 
     //  Unregister recorded user
     void unreg(bool doOpen = true) {
-        debugger.act("Cell", "Unregistration", identity, false);
-        user.set_uid(0);
+        debugger.act("Cell", "Unregistration", cellNumber, false);
+        System.Memory.del_userId(cellNumber);
         if (doOpen) {
             open();
         }
     }
 
     //  Register new user for cell
-    void reg(unsigned long userIdentity, bool doOpen = true) {
-        debugger.act("Cell", "Registration", identity, false);
-        user.set_uid(userIdentity);
-        if (doOpen) {
+    void reg(unsigned long userId, bool open = true) {
+        debugger.act("Cell", "Registration", cellNumber, false);
+        System.Memory.set_userId(cellNumber, userId);
+        if (open) {
             open();
         }
     }
