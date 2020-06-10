@@ -2,7 +2,7 @@
  *
  * PROJECT SCHLOCKER!
  *
- * Developer: Samoilov Daniil(gay) © 2020
+ * Developer: Samoilov Daniil © 2020
  * VK: @dansamoru
  *
 */
