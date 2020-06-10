@@ -7,19 +7,19 @@
 * VK: @dansamoru
 */
 
+//  ===SETTINGS===
 
-//  ===INCLUDE SETTINGS===
+//  ==INCLUDE SETTINGS==
 
 #include <Wire.h>
 #include <SPI.h>
 #include <Adafruit_PN532.h>
 #include <EEPROM.h>
 
-
-//  ===PROJECT SETTINGS===
+//  ==PROJECT SETTINGS==
 #define CELL_QUANTITY 4
 
-//  ===CIRCUIT SETTINGS===
+//  ==CIRCUIT SETTINGS==
 #define LOCKER_START_PIN 9  //  First pin for cells
 #define LOCKER_SENSOR_START_PIN 5  //  First pin for checkers
 #define SCANNER_PIN 19  //  Pin for RFID-scanner
@@ -29,7 +29,7 @@
 #define YELLOW_LED_PIN 3
 #define RED_LED_PIN 4
 
-//  ===HARDWARE SETTINGS===
+//  ==HARDWARE SETTINGS==
 #define DEBUG true  //  Switch on debug (boolean)
 #define SCANNER_WAIT_TIME 1000  //  Total delay for scanning
 #define LOOP_DELAY 100  //  Delay in "loop"
@@ -44,19 +44,55 @@
 
 static class System{
 public:
-    class Memory{
+    static class Memory{
         public:
-           unsigned long get_userId(cellNumber){ // Get user id from EEPROM
+            //  Initialize EEPROM
+            bool begin(){
+                  switch(EEPROM.read(0)){
+                      case 255:
+                        EEPROM.update(0, CELL_QUANTITY);  //  Return true in next line
+                      case CELL_QUANTITY:
+                        return true;
+                      default:
+                        return false;
 
+                  }
+            }
+
+          // Get userId from EEPROM
+           unsigned long get_userId(unsigned short cellNumber){
+            byte buffer[4];
+            for(unsigned short i = 1; i < 5; i++){
+              buffer[i] = EEPROM.read(cellNumber*4+i);
+            }
+            return (unsigned long&)buffer;
            }
-           void set_userId(cellNumber, userId){ // Set user id from EEPROM
 
+           // Set userId from EEPROM
+           void set_userId(unsigned short cellNumber, unsigned long userId){
+            byte buffer[4];
+            (unsigned long&)buffer = userId;
+            for(unsigned short i = 1; i < 5; i++){
+              EEPROM.update(cellNumber*4+i, buffer[i]);
+            }
            }
 
            void del_userId(cellNumber){
-             set_userId(cellNumber, null);
+             byte buffer[]{255,255,255,255};
+             for(unsigned short i = 1; i < 5; i++){
+               EEPROM.update(cellNumber*4+i, buffer[i]);
+             }
+            }
            }
 
+#if DEBUG
+          //  Resetting EEPROM
+           void reset(){
+              for (int i=0; i<EEPROM.length(); i++) {
+               EEPROM.update(i, 255);
+              }
+           }
+#endif
     }
 };
 
@@ -64,16 +100,18 @@ public:
 class Debugger {
     bool lastEnds = true;  //  Had last flag "end"
 public:
-    //  Free RAM on the board
+
 #if DEBUG
+    //  Free RAM on the board
     static int freeRam() {
         extern int __heap_start, *__brkval;
         int v;
         return (int) &v - (__brkval == 0 ? (int) &__heap_start : (int) __brkval);
     }
 #endif
+
     //  First message
-    static void loaded() {
+    static void begin() {
 #if DEBUG
         if (DEBUG) {
             Serial.println("###LOADED###");
@@ -84,6 +122,7 @@ public:
         }
 #endif
     }
+
     //  Act logs
     void act(String object, String act, int number = -1, bool ending = true) {
 #if DEBUG
@@ -124,6 +163,18 @@ public:
         Serial.println(error);
         Serial.println("#END#\n");
 #endif
+
+    static void checkConsole(){
+        if(Serial.available() > 0){
+          string tmp = Serial.readString()
+          if(mp == "MEMORY_RESET"){
+              System.Memory.reset();
+          }
+          else{
+              Serial.println("Лол ты чо мне пишешь,F");
+          }
+        }
+    }
     }
 };
 Debugger debugger;
@@ -134,7 +185,7 @@ Debugger debugger;
 class Port {
 protected:
     unsigned short portNumber;
-    explicit Port(unsigned short _portNumber) : portNumber(_portNumber) {}
+    explicit Port(unsigned short _portNumber) : portNumber(_portNumber){}
 };
 
 //  Class for ports with "INPUT" mode
@@ -323,7 +374,7 @@ public:
 
     //  The cycle of scanning
     unsigned long scan() {
-        buzzer.play(0);
+        //buzzer.play(0);
         debugger.act("Scanner", "Start scanning", -1, false);
         unsigned long startTime = millis();  //  Variable for timer
         delay(1);
@@ -388,11 +439,11 @@ public:
 //  Main class for section
 class Schlocker {
     Cell cells[CELL_QUANTITY];
-    Scanner scanner = Scanner(SCANNER_PIN);
+    Scanner scanner(SCANNER_PIN);
     Indication indication;
-    Button greenButton = Button(OPEN_BUTTON_PIN);
-    Button redButton = Button(DELETE_BUTTON_PIN);
-    Button closeButton = Button(CLOSE_BUTTON_PIN);
+    Button greenButton(OPEN_BUTTON_PIN);
+    Button redButton(DELETE_BUTTON_PIN);
+    Button closeButton(CLOSE_BUTTON_PIN);
     unsigned short stat = 0;  //  Section status: 0 - green, 1 - yellow, 2 - red, 3 - green/yellow, 4 - red/yellow
 public:
     Schlocker() {
@@ -470,8 +521,9 @@ public:
 Schlocker schlocker;
 
 void setup() {
+    System.Memory.begin();
     Serial.begin(SERIAL_SPEED);
-    debugger.loaded();
+    debugger.begin();
 }
 
 void loop() {
