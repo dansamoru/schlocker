@@ -1,10 +1,10 @@
 /*
-*
-* PROJECT SCHLOCKER
-* v.0.2.0.4
-*
-* Developer: Samoilov Daniil © 2020
-* VK: @dansamoru
+ *
+ * PROJECT SCHLOCKER
+ *
+ * Developer: Samoilov Daniil © 2020
+ * VK: @dansamoru
+ *
 */
 
 //  ===SETTINGS===
@@ -42,72 +42,83 @@
 
 // ==SYSTEM==
 
-static class System{
+static class System {
 public:
-    static class Memory{
-        public:
-            //  Initialize EEPROM
-            bool begin(){
-                  switch(EEPROM.read(0)){
-                      case 255:
-                        EEPROM.update(0, CELL_QUANTITY);  //  Return true in next line
-                      case CELL_QUANTITY:
-                        return true;
-                      default:
-                        return false;
+    static class Memory {
+    public:
+        //  Initialize EEPROM
+        bool begin() {
+            switch (EEPROM.read(0)) {
+                case 255:
+                    EEPROM.update(0, CELL_QUANTITY);  //  Return true in next line
+                case CELL_QUANTITY:
+                    return true;
+                default:
+                    return false;
 
-                  }
             }
+        }
 
-          // Get userId from EEPROM
-           unsigned long get_userId(unsigned short cellNumber){
+        // Get userId from EEPROM
+        unsigned long get_userId(unsigned short cellNumber) {
             byte buffer[4];
-            for(unsigned short i = 1; i < 5; i++){
-              buffer[i] = EEPROM.read(cellNumber*4+i);
+            for (unsigned short i = 1; i < 5; i++) {
+                buffer[i] = EEPROM.read(cellNumber * 4 + i);
             }
-            return (unsigned long&)buffer;
-           }
+            return (unsigned long &) buffer;
+        }
 
-           // Set userId from EEPROM
-           void set_userId(unsigned short cellNumber, unsigned long userId){
+        // Set userId from EEPROM
+        void set_userId(unsigned short cellNumber, unsigned long userId) {
             byte buffer[4];
-            (unsigned long&)buffer = userId;
-            for(unsigned short i = 1; i < 5; i++){
-              EEPROM.update(cellNumber*4+i, buffer[i]);
+            (unsigned long &) buffer = userId;
+            for (unsigned short i = 1; i < 5; i++) {
+                EEPROM.update(cellNumber * 4 + i, buffer[i]);
             }
-           }
+        }
 
-           void del_userId(cellNumber){
-             byte buffer[]{255,255,255,255};
-             for(unsigned short i = 1; i < 5; i++){
-               EEPROM.update(cellNumber*4+i, buffer[i]);
-             }
+        void del_userId(unsigned short cellNumber) {
+            byte buffer[]{255, 255, 255, 255};
+            for (unsigned short i = 1; i < 5; i++) {
+                EEPROM.update(cellNumber * 4 + i, buffer[i]);
             }
-           }
+        }
+    }
 
 #if DEBUG
-          //  Resetting EEPROM
-           void reset(){
-              for (int i=0; i<EEPROM.length(); i++) {
-               EEPROM.update(i, 255);
-              }
-           }
-#endif
+
+    //  Resetting EEPROM
+    void reset() {
+        for (int i = 0; i < EEPROM.length(); i++) {
+            EEPROM.update(i, 255);
+        }
     }
-};
+
+#endif
+
+    static void begin() {
+        System.Memory.begin();
+        Serial.begin(SERIAL_SPEED);
+        Debugger.begin();
+    }
+}
 
 //  Class for debugging messages
+static
+
 class Debugger {
-    bool lastEnds = true;  //  Had last flag "end"
+    static bool lastEnds = true;  //  Had last flag "end"
 public:
 
 #if DEBUG
+
     //  Free RAM on the board
     static int freeRam() {
         extern int __heap_start, *__brkval;
         int v;
         return (int) &v - (__brkval == 0 ? (int) &__heap_start : (int) __brkval);
     }
+
 #endif
 
     //  First message
@@ -164,20 +175,18 @@ public:
         Serial.println("#END#\n");
 #endif
 
-    static void checkConsole(){
-        if(Serial.available() > 0){
-          string tmp = Serial.readString()
-          if(mp == "MEMORY_RESET"){
-              System.Memory.reset();
-          }
-          else{
-              Serial.println("Лол ты чо мне пишешь,F");
-          }
+        static void checkConsole() {
+            if (Serial.available() > 0) {
+                string tmp = Serial.readString()
+                if (mp == "MEMORY_RESET") {
+                    System.Memory.reset();
+                } else {
+                    Serial.println("Лол ты чо мне пишешь,F");
+                }
+            }
         }
     }
-    }
 };
-Debugger debugger;
 
 //  ==PORTS==
 
@@ -185,7 +194,8 @@ Debugger debugger;
 class Port {
 protected:
     unsigned short portNumber;
-    explicit Port(unsigned short _portNumber) : portNumber(_portNumber){}
+
+    explicit Port(unsigned short _portNumber) : portNumber(_portNumber) {}
 };
 
 //  Class for ports with "INPUT" mode
@@ -222,15 +232,15 @@ protected:
 };
 
 //  Class for lockers
-class LockerPort :  protected OutPort, protected InPort{
+class LockerPort : protected OutPort, protected InPort {
 public:
     explicit LockerPort(unsigned short _lockerPortNumber, unsigned short _sensorPortNumber) :
             OutPort(_lockerPortNumber),
-            InPort(_sensorPortNumber){}
+            InPort(_sensorPortNumber) {}
 
     //  Open locker
     void open(unsigned int milliseconds = 1000) {
-        if(milliseconds > LOCKER_MAX_TIME){
+        if (milliseconds > LOCKER_MAX_TIME) {
             return;
         }
         digitalWrite(OutPort::portNumber, HIGH);
@@ -240,7 +250,7 @@ public:
 
     //  Is locker opened
     bool is_open() {
-        return (digitalRead(InPort::portNumber)!=LOCKER_SENSOR_DEFAULT_VALUE);  // Compare with default value
+        return (digitalRead(InPort::portNumber) != LOCKER_SENSOR_DEFAULT_VALUE);  // Compare with default value
     }
 
 
@@ -256,7 +266,7 @@ protected:
     explicit PortScanner(unsigned short _portNumber) : Port(_portNumber) {
         scanner.begin();
         if (!scanner.getFirmwareVersion()) {
-            debugger.error("Scanner", "Didn't find");
+            Debugger.error("Scanner", "Didn't find");
         }
         scanner.SAMConfig();
     }
@@ -277,7 +287,7 @@ public:
     explicit Buzzer(unsigned short _portNumber) : OutPort(_portNumber) {}
 
     void play(unsigned short mode) {
-        debugger.act("Buzzer", "Play");
+        Debugger.act("Buzzer", "Play");
         switch (mode) {
             case 0:
                 tone(BUZZER_TON_1, portNumber, 500);
@@ -331,13 +341,13 @@ public:
 
     //  Open cell
     void open() {
-        debugger.act("Cell", "Open", cellNumber);
+        Debugger.act("Cell", "Open", cellNumber);
         open();
     }
 
     //  Unregister recorded user
     void unreg(bool doOpen = true) {
-        debugger.act("Cell", "Unregistration", cellNumber, false);
+        Debugger.act("Cell", "Unregistration", cellNumber, false);
         System.Memory.del_userId(cellNumber);
         if (doOpen) {
             open();
@@ -346,7 +356,7 @@ public:
 
     //  Register new user for cell
     void reg(unsigned long userId, bool open = true) {
-        debugger.act("Cell", "Registration", cellNumber, false);
+        Debugger.act("Cell", "Registration", cellNumber, false);
         System.Memory.set_userId(cellNumber, userId);
         if (open) {
             open();
@@ -375,18 +385,18 @@ public:
     //  The cycle of scanning
     unsigned long scan() {
         //buzzer.play(0);
-        debugger.act("Scanner", "Start scanning", -1, false);
+        Debugger.act("Scanner", "Start scanning", -1, false);
         unsigned long startTime = millis();  //  Variable for timer
         delay(1);
         while (millis() - startTime <= SCANNER_WAIT_TIME) {
             if (isAvailable()) {
                 unsigned long uid = read();
-                debugger.act("Scanner", "End scanning");
+                Debugger.act("Scanner", "End scanning");
                 return uid;
             }
             //delay(LOOP_DELAY / 10);
         }
-        debugger.act("Scanner", "End scanning (timeout)");
+        Debugger.act("Scanner", "End scanning (timeout)");
         return 0;
     }
 
@@ -394,9 +404,17 @@ public:
 
 //  Class for all led indication
 class Indication {
-    Led green(GREEN_LED_PIN);
-    Led yellow(YELLOW_LED_PIN);
-    Led red(RED_LED_PIN);
+    Led green(
+
+    GREEN_LED_PIN);
+
+    Led yellow(
+
+    YELLOW_LED_PIN);
+
+    Led red(
+
+    RED_LED_PIN);
     unsigned short mode = 0;
 public:
 
@@ -439,24 +457,35 @@ public:
 //  Main class for section
 class Schlocker {
     Cell cells[CELL_QUANTITY];
-    Scanner scanner(SCANNER_PIN);
+
+    Scanner scanner(
+
+    SCANNER_PIN);
     Indication indication;
-    Button greenButton(OPEN_BUTTON_PIN);
-    Button redButton(DELETE_BUTTON_PIN);
+
+    Button greenButton(
+
+    OPEN_BUTTON_PIN);
+
+    Button redButton(
+
+    DELETE_BUTTON_PIN);
+
     Button closeButton(CLOSE_BUTTON_PIN);
+
     unsigned short stat = 0;  //  Section status: 0 - green, 1 - yellow, 2 - red, 3 - green/yellow, 4 - red/yellow
 public:
     Schlocker() {
         for (int i = 0; i < CELL_QUANTITY; ++i) {
             cells[i] = Cell(i);
         }
-        indication.refresh();
+        //indication.refresh();
     }
 
     //  Search cell with userId
     unsigned short cellSearch(unsigned long userId) {
         for (int i = 0; i < CELL_QUANTITY; ++i) {
-            if (cells[i]->userId() == userId) {
+            if (cells[i].userId() == userId) {
                 return i + 1;
             }
         }
@@ -466,7 +495,7 @@ public:
     void updateStat() {
         bool isGreen = false;
         for (int i = 0; i < CELL_QUANTITY; i++) {
-            if (cells[i]->userId() == 0) {
+            if (cells[i].userId() == 0) {
                 isGreen = true;
             }
         }
@@ -482,34 +511,34 @@ public:
     void refresh() {
         updateStat();
         if (greenButton.isPushed()) {
-            debugger.act("Green button", "Pressed");
+            Debugger.act("Green button", "Pressed");
             unsigned long userId = scanner.scan();
             if (userId != 0) {
                 unsigned short cellId = cellSearch(userId);
                 if (cellId != 0) {
-                    cells[cellId - 1]->open();
+                    cells[cellId - 1].open();
                 } else {
-                    cells[cellSearch(0) - 1]->reg(userId);
+                    cells[cellSearch(0) - 1].reg(userId);
 
                 }
             }
         }
         redButton.isPushed();
         if (redButton.isPushed()) {
-            debugger.act("Red button", "Pressed");
+            Debugger.act("Red button", "Pressed");
             unsigned long userId = scanner.scan();
             if (userId != 0) {
                 unsigned short cellId = cellSearch(userId);
                 if (cellId != 0) {
-                    cells[cellId - 1]->unreg();
+                    cells[cellId - 1].unreg();
                 }
             }
         }
         if (closeButton.isPushed()) {
-            debugger.act("Close button", "Pressed");
+            Debugger.act("Close button", "Pressed");
             for (int i = 0; i < CELL_QUANTITY; i++) {
-                if (cells[i]->get_isOpen()) {
-                    cells[i]->close();
+                if (cells[i].get_isOpen()) {
+                    cells[i].close();
                 }
             }
         }
@@ -521,9 +550,8 @@ public:
 Schlocker schlocker;
 
 void setup() {
-    System.Memory.begin();
-    Serial.begin(SERIAL_SPEED);
-    debugger.begin();
+    System.begin();
+
 }
 
 void loop() {
