@@ -1,8 +1,8 @@
 /*
  *
- * PROJECT SCHLOCKER
+ * PROJECT SCHLOCKER!
  *
- * Developer: Samoilov Daniil © 2020
+ * Developer: Samoilov Daniil(gay) © 2020
  * VK: @dansamoru
  *
 */
@@ -40,14 +40,253 @@
 
 //  ===CODE===
 
+
 // ==SYSTEM==
 
-static class System {
+class System {
 public:
-    static class Memory {
+    //  Class for EEPROM
+    class Memory {
     public:
-        //  Initialize EEPROM
-        bool begin() {
+        //  Initialize
+        static bool begin();
+
+        //  Get userId from EEPROM
+        static unsigned long get_userId(unsigned short cellNumber);
+
+        //  Set userId from EEPROM
+        static void set_userId(unsigned short cellNumber, unsigned long userId);
+
+        //  Delete userId from EEPROM
+        static void del_userId(unsigned short cellNumber);
+    };
+
+#if DEBUG
+    //  Reset EEPROM
+    static void reset();
+#endif
+
+    //  Start EEPROM
+    static void begin();
+};
+
+//  Class for debugging messages
+static class Debugger {
+    #if DEBUG
+        //  Free RAM on the board
+        static int freeRam();
+    #endif
+public:
+    //  First message
+    static void begin();
+
+    //  Act logs
+    void act(String object, String act, int number = -1);
+
+    //  Error logs
+    static void error(String object, String error, int number = -1);
+
+    //  User interface
+    static void checkConsole();
+};
+
+
+//  ==PORTS==
+
+//  Basic class for any port
+class Port {
+protected:
+    unsigned short portNumber;
+    explicit Port(unsigned short _portNumber) : portNumber(_portNumber);
+};
+
+//  Class for port with "INPUT" mode
+class InPort : protected Port {
+protected:
+    explicit InPort(unsigned short _portNumber) : Port(_portNumber);
+};
+
+//  Class for port with "OUTPUT" mode
+class OutPort : protected Port {
+protected:
+    explicit OutPort(unsigned short _number) : Port(_number);
+
+    //  Set HIGH or LOW
+    void set(bool value);
+};
+
+//  Class for port with "INPUT_PULLUP" mode
+class PullupPort : protected Port {
+protected:
+    explicit PullupPort(unsigned short _portNumber) : Port(_portNumber);
+
+    //  Read value of port
+    bool read();
+};
+
+
+// ==COMPONENTS==
+
+//  Class for locker
+class LockerPort : protected OutPort, protected InPort {
+public:
+    explicit LockerPort(unsigned short _lockerPortNumber, unsigned short _sensorPortNumber) :
+            OutPort(_lockerPortNumber),
+            InPort(_sensorPortNumber);
+
+    //  Open locker
+    void open(unsigned int milliseconds = 1000);
+
+    //  Is locker opened
+    bool is_open();
+
+
+};
+
+// Class for port with RFID-scanner
+class PortScanner : protected Port {
+    Adafruit_PN532 scanner = Adafruit_PN532(portNumber, 100);
+    uint8_t card{};
+    uint8_t uid[8]{};
+    uint8_t uidLength{};
+protected:
+    explicit PortScanner(unsigned short _portNumber) : Port(_portNumber);
+
+    //  Check for scanner readability
+    bool isReadable();
+
+    //  Get userId
+    unsigned long get_uid();
+};
+
+//  Class for bugs
+class Buzzer : protected OutPort {
+public:
+    explicit Buzzer(unsigned short _portNumber) : OutPort(_portNumber);
+
+    //  Play Minecraft song
+    void play(unsigned short mode);
+};
+
+//  Class for button
+class Button :
+        protected PullupPort {
+public:
+    explicit Button(unsigned short _portNumber) : PullupPort(_portNumber);
+
+    //  Is button pressed
+    bool isPushed();
+};
+
+//  Class for indication led
+class Led :
+        protected OutPort {
+public:
+    explicit Led(unsigned short _portNumber) : OutPort(_portNumber);
+
+    void turnOn();
+
+    void turnOff();
+};
+
+//  Component of section
+class Cell : protected LockerPort {
+    unsigned short cellNumber;
+//unsigned int lastOpenTime = 0;  //  Time when cell was opened last time
+//unsigned int registrationTime = 0;  //  Time when cell was registered
+public:
+    explicit Cell(short _portNumber) : LockerPort(_portNumber + CELL_START_PIN, _portNumber + CELL_SENSOR_START_PIN);
+
+    //  Get unique userId
+    unsigned long get_userId();
+
+    //  Open the cell
+    void open();
+
+    //  Unregister current user
+    void unreg(bool doOpen = true);
+
+    //  Register new user
+    void reg(unsigned long userId, bool open = true);
+
+    //  Is the cell opened
+    bool isOpen();
+};
+
+//  Class for RFID-scanner
+class Scanner :
+        protected PortScanner {
+public:
+    Scanner(unsigned short _portNumber) : PortScanner(_portNumber);
+
+    //  Check for scanner available
+    bool isAvailable();
+
+    //  Read current value
+    unsigned long read();
+
+    //  TODO: Чекнуть нужен ли цикл
+    //  The cycle of scanning
+    unsigned long scan();
+
+};
+
+//  Class for all led indication
+class Indication {
+    Led green(GREEN_LED_PIN);
+    Led yellow(YELLOW_LED_PIN);
+    Led red(RED_LED_PIN);
+    unsigned short mode = 0;
+public:
+
+    //  Set indication mode
+    void set_mode(unsigned short value);
+
+    //  Update
+    void refresh();
+};
+
+//  Main class for section
+class Section {
+    Cell cells[CELL_QUANTITY];
+    Scanner scanner(SCANNER_PIN);
+    Indication indication;
+    Button greenButton(OPEN_BUTTON_PIN);
+    Button redButton(DELETE_BUTTON_PIN);
+
+    unsigned short stat = 0;  //  Section status: 0 - green, 1 - yellow, 2 - red, 3 - green/yellow, 4 - red/yellow
+public:
+    Section();
+
+    //  Search cell with userId
+    unsigned short cellSearch(unsigned long userId);
+
+    void update_stat();
+
+    //  Refresh system status
+    void refresh();
+
+};
+
+Section section;
+
+void setup() {
+    System::begin();
+}
+
+void loop() {
+    section.refresh();
+    delay(LOOP_DELAY);
+}
+
+
+//  ===CODE===
+
+class System {
+public:
+    class Memory {
+    public:
+        static bool begin() {
             switch (EEPROM.read(0)) {
                 case 255:
                     EEPROM.update(0, CELL_QUANTITY);  //  Return true in next line
@@ -55,12 +294,10 @@ public:
                     return true;
                 default:
                     return false;
-
             }
         }
 
-        // Get userId from EEPROM
-        unsigned long get_userId(unsigned short cellNumber) {
+        static unsigned long get_userId(unsigned short cellNumber) {
             byte buffer[4];
             for (unsigned short i = 1; i < 5; i++) {
                 buffer[i] = EEPROM.read(cellNumber * 4 + i);
@@ -68,8 +305,7 @@ public:
             return (unsigned long &) buffer;
         }
 
-        // Set userId from EEPROM
-        void set_userId(unsigned short cellNumber, unsigned long userId) {
+        static void set_userId(unsigned short cellNumber, unsigned long userId) {
             byte buffer[4];
             (unsigned long &) buffer = userId;
             for (unsigned short i = 1; i < 5; i++) {
@@ -77,42 +313,39 @@ public:
             }
         }
 
-        void del_userId(unsigned short cellNumber) {
-            byte buffer[]{255, 255, 255, 255};
+        static void del_userId(unsigned short cellNumber) {
+            byte buffer[]{
+                    255, 255, 255, 255
+            };
             for (unsigned short i = 1; i < 5; i++) {
                 EEPROM.update(cellNumber * 4 + i, buffer[i]);
             }
         }
-    }
+    };
 
 #if DEBUG
-
-    //  Resetting EEPROM
-    void reset() {
+    static void reset() {
         for (int i = 0; i < EEPROM.length(); i++) {
             EEPROM.update(i, 255);
         }
     }
-
 #endif
 
     static void begin() {
-        System.Memory.begin();
+        System::Memory::begin();
         Serial.begin(SERIAL_SPEED);
         Debugger.begin();
     }
-}
+};
 
 //  Class for debugging messages
-static
-
-class Debugger {
+static class Debugger {
     static bool lastEnds = true;  //  Had last flag "end"
 public:
 
 #if DEBUG
 
-    //  Free RAM on the board
+//  Free RAM on the board
     static int freeRam() {
         extern int __heap_start, *__brkval;
         int v;
@@ -121,7 +354,7 @@ public:
 
 #endif
 
-    //  First message
+//  First message
     static void begin() {
 #if DEBUG
         if (DEBUG) {
@@ -134,7 +367,7 @@ public:
 #endif
     }
 
-    //  Act logs
+//  Act logs
     void act(String object, String act, int number = -1, bool ending = true) {
 #if DEBUG
         if (lastEnds) {
@@ -158,7 +391,6 @@ public:
 #endif
     }
 
-    //  Error logs
     static void error(String object, String error, int number = -1) {
 #if DEBUG
         Serial.println("#ERROR#");
@@ -188,13 +420,9 @@ public:
     }
 };
 
-//  ==PORTS==
-
-//  Basic class for all components
 class Port {
 protected:
     unsigned short portNumber;
-
     explicit Port(unsigned short _portNumber) : portNumber(_portNumber) {}
 };
 
@@ -218,7 +446,6 @@ protected:
     }
 };
 
-//  Class for ports with "INPUT_PULLUP" mode
 class PullupPort : protected Port {
 protected:
     explicit PullupPort(unsigned short _portNumber) : Port(_portNumber) {
@@ -231,14 +458,12 @@ protected:
     }
 };
 
-//  Class for lockers
 class LockerPort : protected OutPort, protected InPort {
 public:
     explicit LockerPort(unsigned short _lockerPortNumber, unsigned short _sensorPortNumber) :
             OutPort(_lockerPortNumber),
             InPort(_sensorPortNumber) {}
 
-    //  Open locker
     void open(unsigned int milliseconds = 1000) {
         if (milliseconds > LOCKER_MAX_TIME) {
             return;
@@ -248,7 +473,6 @@ public:
         digitalWrite(OutPort::portNumber, LOW);
     }
 
-    //  Is locker opened
     bool is_open() {
         return (digitalRead(InPort::portNumber) != LOCKER_SENSOR_DEFAULT_VALUE);  // Compare with default value
     }
@@ -256,7 +480,6 @@ public:
 
 };
 
-// Class for ports with RFID-scanner
 class PortScanner : protected Port {
     Adafruit_PN532 scanner = Adafruit_PN532(portNumber, 100);
     uint8_t card{};
@@ -281,7 +504,6 @@ protected:
     }
 };
 
-/*
 class Buzzer : protected OutPort {
 public:
     explicit Buzzer(unsigned short _portNumber) : OutPort(_portNumber) {}
@@ -295,21 +517,18 @@ public:
         }
     }
 };
-Buzzer buzzer = Buzzer(BUZZER_PIN);
- */
 
 //  Class for buttons
 class Button : protected PullupPort {
 public:
     explicit Button(unsigned short _portNumber) : PullupPort(_portNumber) {}
 
-    //  Is button pressed in this moment
     bool isPushed() {
         return !read();
     }
 };
 
-//  Class for indication bulbs
+
 class Led : protected OutPort {
 public:
     explicit Led(unsigned short _portNumber) : OutPort(_portNumber) {}
@@ -324,28 +543,24 @@ public:
     }
 };
 
-//  Component of section
 class Cell : protected LockerPort {
     unsigned short cellNumber;
-    //unsigned int lastOpenTime = 0;  //  Time when cell was opened last time
-    //unsigned int registrationTime = 0;  //  Time when cell was registered
+//unsigned int lastOpenTime = 0;  //  Time when cell was opened last time
+//unsigned int registrationTime = 0;  //  Time when cell was registered
 public:
     explicit Cell(short _portNumber) : LockerPort(_portNumber + CELL_START_PIN, _portNumber + CELL_SENSOR_START_PIN) {
         cellNumber = portNumber - CELL_START_PIN;
     }
 
-    //  Get unique user id
     unsigned long userId() {
         return System.Memory.get_userId(cellNumber);
     }
 
-    //  Open cell
     void open() {
         Debugger.act("Cell", "Open", cellNumber);
         open();
     }
 
-    //  Unregister recorded user
     void unreg(bool doOpen = true) {
         Debugger.act("Cell", "Unregistration", cellNumber, false);
         System.Memory.del_userId(cellNumber);
@@ -354,7 +569,6 @@ public:
         }
     }
 
-    //  Register new user for cell
     void reg(unsigned long userId, bool open = true) {
         Debugger.act("Cell", "Registration", cellNumber, false);
         System.Memory.set_userId(cellNumber, userId);
@@ -368,7 +582,6 @@ public:
     }
 };
 
-//  Class for RFID-scanner
 class Scanner : protected PortScanner {
 public:
     Scanner(unsigned short _portNumber) : PortScanner(_portNumber) {}
@@ -377,14 +590,12 @@ public:
         return isReadable();
     }
 
-    //  Read current value
     unsigned long read() {
         return get_uid();
     }
 
-    //  The cycle of scanning
     unsigned long scan() {
-        //buzzer.play(0);
+        buzzer.play(0);
         Debugger.act("Scanner", "Start scanning", -1, false);
         unsigned long startTime = millis();  //  Variable for timer
         delay(1);
@@ -394,7 +605,7 @@ public:
                 Debugger.act("Scanner", "End scanning");
                 return uid;
             }
-            //delay(LOOP_DELAY / 10);
+//delay(LOOP_DELAY / 10);  //  ЧТО ЭТО
         }
         Debugger.act("Scanner", "End scanning (timeout)");
         return 0;
@@ -402,23 +613,12 @@ public:
 
 };
 
-//  Class for all led indication
 class Indication {
-    Led green(
-
-    GREEN_LED_PIN);
-
-    Led yellow(
-
-    YELLOW_LED_PIN);
-
-    Led red(
-
-    RED_LED_PIN);
+    Led green(GREEN_LED_PIN);
+    Led yellow(YELLOW_LED_PIN);
+    Led red(RED_LED_PIN);
     unsigned short mode = 0;
 public:
-
-    //  Set indication mode
     void setMode(unsigned short value) {
         mode = value;
     }
@@ -454,35 +654,22 @@ public:
     }
 };
 
-//  Main class for section
-class Schlocker {
+class Section {
     Cell cells[CELL_QUANTITY];
-
-    Scanner scanner(
-
-    SCANNER_PIN);
+    Scanner scanner(SCANNER_PIN);
     Indication indication;
-
-    Button greenButton(
-
-    OPEN_BUTTON_PIN);
-
-    Button redButton(
-
-    DELETE_BUTTON_PIN);
-
+    Button greenButton(OPEN_BUTTON_PIN);
+    Button redButton(DELETE_BUTTON_PIN);
     Button closeButton(CLOSE_BUTTON_PIN);
-
     unsigned short stat = 0;  //  Section status: 0 - green, 1 - yellow, 2 - red, 3 - green/yellow, 4 - red/yellow
 public:
-    Schlocker() {
+    Section() {
         for (int i = 0; i < CELL_QUANTITY; ++i) {
-            cells[i] = Cell(i);
+            cells[i] = new Cell(i);
         }
-        //indication.refresh();
+//indication.refresh();  //  Эт зачем
     }
 
-    //  Search cell with userId
     unsigned short cellSearch(unsigned long userId) {
         for (int i = 0; i < CELL_QUANTITY; ++i) {
             if (cells[i].userId() == userId) {
@@ -507,7 +694,6 @@ public:
         indication.set_mode(stat);
     }
 
-    //  Refresh system status
     void refresh() {
         updateStat();
         if (greenButton.isPushed()) {
@@ -519,7 +705,6 @@ public:
                     cells[cellId - 1].open();
                 } else {
                     cells[cellSearch(0) - 1].reg(userId);
-
                 }
             }
         }
@@ -542,19 +727,17 @@ public:
                 }
             }
         }
-        indication.refresh();
+        indication.refresh();  //  А здесь оно есть
     }
-
 };
 
-Schlocker schlocker;
+Section section;
 
 void setup() {
-    System.begin();
-
+    System::begin();
 }
 
 void loop() {
-    schlocker.refresh();
+    section.refresh();
     delay(LOOP_DELAY);
 }
