@@ -31,14 +31,14 @@
 //  =HARDWARE=
 #define LOOP_DELAY 10
 #define SERIAL_SPEED 9600
-#define SCANER_WAIT_TIME 1000
+#define SCANNER_WAIT_TIME 1000
 #define LOCKER_WAIT_TIME 1000
 #define CELL_DONT_OPEN_TIME 604800000
 //  =STRUCT TYPE=
 struct cell_data{
   long userId;
   unsigned long lastOpenTime;
-}
+};
 //  =VARIABLES=
 const unsigned short cell_data_size = sizeof(cell_data);
 Adafruit_PN532 scanner(SCANNER_PIN, 100);
@@ -55,7 +55,7 @@ uint8_t uid[USERID_LENGTH];
 uint8_t uidLength{};
 //  ===INITIALIZATION===
 void pinModes();
-bool scanerSetup();
+void scannerSetup();
 void cellSetup();
 void memorySetup();
 void update();
@@ -67,14 +67,14 @@ unsigned short findCellNumber(unsigned long userId);
 void unregUser(unsigned short cell_number);
 unsigned short regUser(unsigned long userId);
 void rewriteLastOpenTime(unsigned short cell_number);
-void open(unsigned short cell_number);
+void open_cell(unsigned short cell_number);
 
 
 //  ===USE===
 void setup(){
     Serial.begin(SERIAL_SPEED);
     pinModes();
-    scanerSetup();
+    scannerSetup();
     cellSetup();
     memorySetup();
 }
@@ -96,7 +96,7 @@ void update(){
                 cell_number = regUser(userId);
             }
             if(cell_number != NULL){
-                open(cell_number);
+                open_cell(cell_number);
                 rewriteLastOpenTime(cell_number);
             }
         }
@@ -106,7 +106,7 @@ void update(){
         cell_number = findCellNumber(userId);
         if(cell_number != NULL){
             unregUser(cell_number);
-            open(cell_number);
+            open_cell(cell_number);
         }
     }
 }
@@ -129,7 +129,7 @@ void cellSetup(){
 #endif
 }
 
-void pinsMode(){
+void pinModes(){
     pinMode(greenBtn, INPUT_PULLUP);
     pinMode(redBtn, INPUT_PULLUP);
     pinMode(greenLed, OUTPUT);
@@ -137,10 +137,10 @@ void pinsMode(){
     pinMode(redLed, OUTPUT);
 }
 
-void scanerSetup(){
-    scaner.begin();
+void scannerSetup(){
+    scanner.begin();
     if (!scanner.getFirmwareVersion()) {
-        Serial.println("Scaner didn't found")
+        Serial.println("Scaner didn't found");
     }
     scanner.SAMConfig();
 }
@@ -154,7 +154,7 @@ void memorySetup(){
     }
 }
 
-void isReadable(){
+bool isReadable(){
     return scanner.readPassiveTargetID(PN532_MIFARE_ISO14443A, uid, &uidLength);
 }
 
@@ -166,6 +166,7 @@ unsigned long scan(){
             return *(unsigned long *) uid;
         }
     return NULL;
+    }
 }
 
 unsigned short findCellNumber(unsigned long userId){
@@ -192,18 +193,20 @@ unsigned short regUser(unsigned long userId){
 }
 
 void unregUser(unsigned short cell_number){
+    cell_data buffer;
     EEPROM.get(cell_number * cell_data_size + 1, buffer);
     buffer.userId = 4294967295;
-    EEPROM.put(cell_number * cell_data_size + 1, buffer));
+    EEPROM.put(cell_number * cell_data_size + 1, buffer);
 }
 
 void rewriteLastOpenTime(unsigned short cell_number){
+    cell_data buffer;
     EEPROM.get(cell_number * cell_data_size + 1, buffer);
     buffer.lastOpenTime = millis();
-    EEPROM.put(cell_number * cell_data_size + 1, buffer));
+    EEPROM.put(cell_number * cell_data_size + 1, buffer);
 }
 
-void indicate(unsigned short satus){
+void indicate(unsigned short status){
     switch(status){
         case 0:
             digitalWrite(greenLed, HIGH);
@@ -233,7 +236,7 @@ unsigned short update_status(){
     bool isYellow = false;
     cell_data buffer;
     for(unsigned short i = 0; i < CELL_QUANTITY; i++){
-        EEPROM.get(i * cell_data_size + 1, buffer));
+        EEPROM.get(i * cell_data_size + 1, buffer);
         if(millis() - buffer.lastOpenTime > CELL_DONT_OPEN_TIME){
             isYellow = true;
         }
@@ -258,7 +261,8 @@ unsigned short update_status(){
     }
 }
 
-void open(unsigned short cell_number){
+
+void open_cell(unsigned short cell_number){
     digitalWrite(lockers[cell_number], HIGH);
     delay(LOCKER_WAIT_TIME);
     digitalWrite(lockers[cell_number], LOW);
