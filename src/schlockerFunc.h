@@ -239,5 +239,6 @@ void update(){
             unregUser(cell_number);
             open_cell(cell_number);
         }
+        }
     }
 }
