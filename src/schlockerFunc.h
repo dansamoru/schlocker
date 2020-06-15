@@ -110,7 +110,6 @@ unsigned long scan(){
         if (isReadable()) {
             return *(unsigned long *) uid;
         }
-    return NULL;
     }
 }
 
@@ -122,7 +121,7 @@ unsigned short findCellNumber(unsigned long userId){
           return i;
        }
     }
-    return NULL;
+    return CELL_QUANTITY;
 }
 
 unsigned short regUser(unsigned long userId){
@@ -211,4 +210,34 @@ void open_cell(unsigned short cell_number){
     digitalWrite(lockers[cell_number], HIGH);
     delay(LOCKER_WAIT_TIME);
     digitalWrite(lockers[cell_number], LOW);
+}
+
+void update(){
+    unsigned short status = update_status();
+    unsigned short cell_number;
+    indicate(status);
+    unsigned long userId;
+    if(digitalRead(greenBtn) == LOW && digitalRead(redBtn) == HIGH){
+
+        if(isReadable()){
+            userId = scan();
+            cell_number = findCellNumber(userId);
+            if(cell_number == CELL_QUANTITY && status < 2){
+                cell_number = regUser(userId);
+            }
+            if(cell_number != CELL_QUANTITY){
+                open_cell(cell_number);
+                rewriteLastOpenTime(cell_number);
+            }
+        }
+    }
+    else if(digitalRead(redBtn) == LOW && digitalRead(greenBtn) == HIGH){
+        if(isReadable){
+        userId = scan();
+        cell_number = findCellNumber(userId);
+        if(cell_number != CELL_QUANTITY){
+            unregUser(cell_number);
+            open_cell(cell_number);
+        }
+    }
 }
