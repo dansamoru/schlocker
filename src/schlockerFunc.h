@@ -235,10 +235,10 @@ void update(){
         if(isReadable){
         userId = scan();
         cell_number = findCellNumber(userId);
-        if(cell_number != CELL_QUANTITY){
-            unregUser(cell_number);
-            open_cell(cell_number);
-        }
+          if(cell_number != CELL_QUANTITY){
+              unregUser(cell_number);
+              open_cell(cell_number);
+          }
         }
     }
 }
