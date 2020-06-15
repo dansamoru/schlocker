@@ -22,7 +22,7 @@
 #define CELL_DONT_OPEN_TIME 604800000
 //  =STRUCT TYPE=
 struct cell_data{
-  long userId;
+  unsigned long userId;
   unsigned long lastOpenTime;
 };
 //  ===INITIALIZATION===
