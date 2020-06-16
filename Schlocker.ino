@@ -6,16 +6,6 @@
  * VK: @pegaster
  *
 */
-
-
-//  ===SETTINGS===
-
-//  ==INCLUDES==
-//  =SYSTEM LIBRARIES=
-#include <EEPROM.h>
-#include <Wire.h>
-#include <SPI.h>
-#include <Adafruit_PN532.h>
 //  =USER LIBRARIES=
 #include "src/schlockerFunc.h"
 

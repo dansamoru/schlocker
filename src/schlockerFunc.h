@@ -1,9 +1,5 @@
 #pragma once
 #include <Arduino.h>
-#include <EEPROM.h>
-#include <Wire.h>
-#include <SPI.h>
-#include <Adafruit_PN532.h>
 //  ==DEFINES==
 //  =PROJECT=
 #define CELL_QUANTITY 4
