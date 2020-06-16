@@ -1,12 +1,9 @@
-//  =SYSTEM LIBRARIES=
-#include <EEPROM.h>
-#include <Wire.h>
-#include <SPI.h>
-#include <Adafruit_PN532.h>
-#include <Arduino.h>  // нужно для ардуино-функций
-//  =USER LIBRARIES=
+//  ===SETTINGS===
+
+//  ==INCLUDES==
 #include "schlockerFunc.h"
-//  =VARIABLES=
+
+//  ==CONSTS==
 const unsigned short cell_data_size = sizeof(cell_data);
 Adafruit_PN532 scanner(SCANNER_PIN, 100);
 unsigned short
@@ -20,6 +17,8 @@ const unsigned short
     redLed = 10;
 uint8_t uid[USERID_LENGTH];
 uint8_t uidLength{};
+
+
 //  ===REALIZATION===
 void cellSetup(){
 #if LOCKERSENSOR_CONF == 0

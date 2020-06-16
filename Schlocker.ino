@@ -1,15 +1,8 @@
 /*
- *
- * PROJECT SCHLOCKER!
- *
- * Developer: Dneprov Stepan © 2020
- * VK: @pegaster
- *
+ * PROJECT: SCHLOCKER!
 */
-//  =USER LIBRARIES=
 #include "src/schlockerFunc.h"
 
-//  ===USE===
 void setup(){
     Serial.begin(SERIAL_SPEED);
     pinModes();

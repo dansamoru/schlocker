@@ -1,5 +1,13 @@
-#pragma once
+#pragma once  //  Хз что это, но оно нужно
+
+
+//  ===SETTTINGS===
+//  ==INCLUDES==
 #include <Arduino.h>
+#include <EEPROM.h>
+#include <Wire.h>
+#include <SPI.h>
+#include <Adafruit_PN532.h>
 //  ==DEFINES==
 //  =PROJECT=
 #define CELL_QUANTITY 4
@@ -21,12 +29,12 @@
 #define SCANNER_WAIT_TIME 1000
 #define LOCKER_WAIT_TIME 1000
 #define CELL_DONT_OPEN_TIME 604800000
-//  =STRUCT TYPE=
+//  ==STRUCTS==
 struct cell_data{
   unsigned long userId;
   unsigned long lastOpenTime;
 };
-//  ===INITIALIZATION===
+//  ===HEADERS===
 void pinModes();
 void scannerSetup();
 void cellSetup();
