@@ -22,14 +22,14 @@ uint8_t uid[USERID_LENGTH];
 uint8_t uidLength{};
 //  ===REALIZATION===
 void cellSetup(){
-#if LOCKERSENSOR_MODE == 0
+#if LOCKERSENSOR_CONF == 0
     for (int i = 0; i < CELL_QUANTITY; i++) {
         lockers[i] = LOCKER_START_PIN + i;
         pinMode(lockers[i], OUTPUT);
         sensors[i] = SENSOR_START_PIN + i;
         pinMode(sensors[i], INPUT);
     }
-#elif LOCKERSENSOR_MODE == 1
+#elif LOCKERSENSOR_CONF == 1
     for (int i = 0; i < CELL_QUANTITY; i++){
         lockers[i] = LOCKER_START_PIN + (i*2);
         pinMode(lockers[i], OUTPUT);
@@ -175,10 +175,31 @@ void open_cell(unsigned short cell_number){
     digitalWrite(lockers[cell_number], HIGH);
     delay(LOCKER_WAIT_TIME);
     digitalWrite(lockers[cell_number], LOW);
+
+}
+
+bool checkIsCellOpen(){
+    for(unsigned short i = 0; i < CELL_QUANTITY; i++){
+        if(LOCKERSENSOR_MODE && digitalRead(sensors[i]) == HIGH){
+            cell_data buffer;
+            EEPROM.get(i*cell_data_size + 1, buffer);
+            if(millis() - buffer.lastOpenTime > CELL_OPEN_TIME_LIMIT){
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
+void play(){
+    tone(BUZZER_PIN, SOUND, PLAY_TIME);
 }
 
 void update(){
     unsigned short status = update_status();
+    if(checkIsCellOpen()){
+        play();
+    }
     unsigned short cell_number;
     indicate(status);
     unsigned long userId;
