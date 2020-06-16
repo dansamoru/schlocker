@@ -1,4 +1,4 @@
-//  ===SETTINGS===
+LOCKER_DEFAULT//  ===SETTINGS===
 
 //  ==INCLUDES==
 #include "schlockerFunc.h"
@@ -21,14 +21,14 @@ uint8_t uidLength{};
 
 //  ===REALIZATION===
 void cellSetup(){
-#if LOCKERSENSOR_CONF == 0
+#if LOCKERSENSOR_CONFIG == 0
     for (int i = 0; i < CELL_QUANTITY; i++) {
         lockers[i] = LOCKER_START_PIN + i;
         pinMode(lockers[i], OUTPUT);
         sensors[i] = SENSOR_START_PIN + i;
         pinMode(sensors[i], INPUT);
     }
-#elif LOCKERSENSOR_CONF == 1
+#elif LOCKERSENSOR_CONFIG == 1
     for (int i = 0; i < CELL_QUANTITY; i++){
         lockers[i] = LOCKER_START_PIN + (i*2);
         pinMode(lockers[i], OUTPUT);
@@ -170,7 +170,7 @@ unsigned short update_status(){
 }
 
 
-void open_cell(unsigned short cell_number){
+void openCell(unsigned short cell_number){
     digitalWrite(lockers[cell_number], HIGH);
     delay(LOCKER_WAIT_TIME);
     digitalWrite(lockers[cell_number], LOW);
@@ -211,7 +211,7 @@ void update(){
                 cell_number = regUser(userId);
             }
             if(cell_number != CELL_QUANTITY){
-                open_cell(cell_number);
+                openCell(cell_number);
                 rewriteLastOpenTime(cell_number);
             }
         }
@@ -222,7 +222,7 @@ void update(){
         cell_number = findCellNumber(userId);
           if(cell_number != CELL_QUANTITY){
               unregUser(cell_number);
-              open_cell(cell_number);
+              openCell(cell_number);
           }
         }
     }
