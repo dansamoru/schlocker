@@ -13,7 +13,7 @@
 //  ==DEFINES==
 //  =PROJECT=
 #define CELL_QUANTITY 4
-#define USERID_LENGTH 4  //  default — 4, secure — 7
+//#define USERID_LENGTH 4  //  default — 4, secure — 7
 //  =PINS=
 #define LOCKER_START_PIN 10
 #define SENSOR_START_PIN 10
@@ -53,7 +53,7 @@ unsigned short update_status();
 unsigned short findCellNumber(unsigned long userId);
 unsigned short regUser(unsigned long userId);
 void unregUser(unsigned short cell_number);
-void rewriteLastOpenTime(unsigned short cell_number);
+void updateLastOpenTime(unsigned short cell_number);
 void openCell(unsigned short cell_number);
 bool checkOpenedCell();
 void play();

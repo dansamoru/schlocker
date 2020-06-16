@@ -3,6 +3,7 @@
  * Developers: Dneprov Stepan, Samoilov Daniil
  *             vk: @pegaster   vk: @dansamoru
 */
+
 #include "src/schlockerFunc.h"
 
 void setup(){

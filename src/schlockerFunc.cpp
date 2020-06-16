@@ -55,10 +55,15 @@ void scannerSetup(){
 }
 
 void memorySetup(){
-    if(EEPROM.read(0) != CELL_QUANTITY){
+    if(EEPROM.read(0) == 255){
         EEPROM.write(0, CELL_QUANTITY);
         for(unsigned short i = 1; i < CELL_QUANTITY * cell_data_size + 1; i++){
             EEPROM.update(i, 255);
+        }
+    }
+    else if(EEPROM.read(0) != CELL_QUANTITY){
+        while(true){
+            Serial.println("Лох, у тебя еепром плохой ты сука");
         }
     }
 }
@@ -85,7 +90,7 @@ unsigned short findCellNumber(unsigned long userId){
           return i;
        }
     }
-    return CELL_QUANTITY;
+    return CELL_QUANTITY;  //  Стёпа сказал что он хитрый
 }
 
 unsigned short regUser(unsigned long userId){
@@ -104,10 +109,11 @@ void unregUser(unsigned short cell_number){
     cell_data buffer;
     EEPROM.get(cell_number * cell_data_size + 1, buffer);
     buffer.userId = 4294967295;
+    buffer.lastOpenTime = 4294967295;
     EEPROM.put(cell_number * cell_data_size + 1, buffer);
 }
 
-void rewriteLastOpenTime(unsigned short cell_number){
+void updateLastOpenTime(unsigned short cell_number){
     cell_data buffer;
     EEPROM.get(cell_number * cell_data_size + 1, buffer);
     buffer.lastOpenTime = millis();
@@ -179,7 +185,7 @@ void openCell(unsigned short cell_number){
 
 bool checkIsCellOpen(){
     for(unsigned short i = 0; i < CELL_QUANTITY; i++){
-        if(LOCKERSENSOR_MODE && digitalRead(sensors[i]) == HIGH){
+        if(LOCKER_DEFAULT != digitalRead(sensors[i])){
             cell_data buffer;
             EEPROM.get(i*cell_data_size + 1, buffer);
             if(millis() - buffer.lastOpenTime > CELL_OPEN_TIME_LIMIT){
@@ -212,7 +218,7 @@ void update(){
             }
             if(cell_number != CELL_QUANTITY){
                 openCell(cell_number);
-                rewriteLastOpenTime(cell_number);
+                updateLastOpenTime(cell_number);
             }
         }
     }
