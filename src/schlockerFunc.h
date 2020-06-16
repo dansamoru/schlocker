@@ -1,4 +1,9 @@
 #pragma once
+//  =SYSTEM LIBRARIES=
+#include <EEPROM.h>
+#include <Wire.h>
+#include <SPI.h>
+#include <Adafruit_PN532.h>
 #include <Arduino.h>
 //  ==DEFINES==
 //  =PROJECT=

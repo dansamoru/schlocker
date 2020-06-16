@@ -1,9 +1,3 @@
-//  =SYSTEM LIBRARIES=
-#include <EEPROM.h>
-#include <Wire.h>
-#include <SPI.h>
-#include <Adafruit_PN532.h>
-#include <Arduino.h>  // нужно для ардуино-функций
 //  =USER LIBRARIES=
 #include "schlockerFunc.h"
 //  =VARIABLES=
