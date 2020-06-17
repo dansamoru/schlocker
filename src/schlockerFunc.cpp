@@ -1,4 +1,4 @@
-LOCKER_DEFAULT//  ===SETTINGS===
+ //  ===SETTINGS===
 
 //  ==INCLUDES==
 #include "schlockerFunc.h"

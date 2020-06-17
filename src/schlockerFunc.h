@@ -8,7 +8,8 @@
 #include <EEPROM.h>
 #include <Wire.h>
 #include <SPI.h>
-#include <Adafruit_PN532.h>
+//  =LIBS=
+#include <src/libs/scanner.h>
 
 //  ==DEFINES==
 //  =PROJECT=
