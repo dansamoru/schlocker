@@ -9,7 +9,7 @@
 #include <Wire.h>
 #include <SPI.h>
 //  =LIBS=
-#include <src/libs/scanner.h>
+#include "libs/scanner.h"
 
 //  ==DEFINES==
 //  =PROJECT=
@@ -25,6 +25,7 @@
 //  =HARDWARE=
 #define SOUND 400
 #define PLAY_TIME 50
+#define SCANNER_WAITTIME 1000
 #define LOCKER_DEFAULT true  //  Value when closed
 #define LOOP_DELAY 10
 #define SERIAL_BAUDRATE 9600  //  Serial speed
@@ -42,12 +43,9 @@ struct cell_data{
 
 //  ===HEADERS===
 void pinModes();
-void scannerSetup();
 void cellSetup();
 void memorySetup();
 void update();
-bool isReadable();
-unsigned long scan();
 void indicate(unsigned short status);
 unsigned short update_status();
 unsigned short findCellNumber(unsigned long userId);

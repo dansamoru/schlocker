@@ -9,7 +9,6 @@
 void setup(){
     Serial.begin(SERIAL_BAUDRATE);
     pinModes();
-    scannerSetup();
     cellSetup();
     memorySetup();
 }

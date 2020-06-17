@@ -5,7 +5,7 @@
 
 //  ==CONSTS==
 const unsigned short cell_data_size = sizeof(cell_data);
-Adafruit_PN532 scanner(SCANNER_PIN, 100);
+Scanner scanner(SCANNER_PIN, 100);
 unsigned short
     lockers[CELL_QUANTITY],
     sensors[CELL_QUANTITY];
@@ -15,8 +15,6 @@ const unsigned short
     greenLed = 10,
     yellowLed = 10,
     redLed = 10;
-uint8_t uid[USERID_LENGTH];
-uint8_t uidLength{};
 
 
 //  ===REALIZATION===
@@ -46,13 +44,6 @@ void pinModes(){
     pinMode(redLed, OUTPUT);
 }
 
-void scannerSetup(){
-    scanner.begin();
-    if (!scanner.getFirmwareVersion()) {
-        Serial.println("Scaner didn't found");
-    }
-    scanner.SAMConfig();
-}
 
 void memorySetup(){
     if(EEPROM.read(0) == 255){
@@ -64,20 +55,6 @@ void memorySetup(){
     else if(EEPROM.read(0) != CELL_QUANTITY){
         while(true){
             Serial.println("Лох, у тебя еепром плохой ты сука");
-        }
-    }
-}
-
-bool isReadable(){
-    return scanner.readPassiveTargetID(PN532_MIFARE_ISO14443A, uid, &uidLength);
-}
-
-unsigned long scan(){
-    unsigned long startTime = millis();  //  Variable for timer
-    delay(1);
-    while (millis() - startTime <= SCANNER_WAIT_TIME) {
-        if (isReadable()) {
-            return *(unsigned long *) uid;
         }
     }
 }
@@ -209,27 +186,22 @@ void update(){
     indicate(status);
     unsigned long userId;
     if(digitalRead(greenBtn) == LOW && digitalRead(redBtn) == HIGH){
-
-        if(isReadable()){
-            userId = scan();
-            cell_number = findCellNumber(userId);
-            if(cell_number == CELL_QUANTITY && status < 2){
-                cell_number = regUser(userId);
-            }
-            if(cell_number != CELL_QUANTITY){
-                openCell(cell_number);
-                updateLastOpenTime(cell_number);
-            }
+        userId = scanner.scan();
+        cell_number = findCellNumber(userId);
+        if(cell_number == CELL_QUANTITY && status < 2){
+            cell_number = regUser(userId);
+        }
+        if(cell_number != CELL_QUANTITY){
+            penCell(cell_number);
+            updateLastOpenTime(cell_number);
         }
     }
     else if(digitalRead(redBtn) == LOW && digitalRead(greenBtn) == HIGH){
-        if(isReadable){
-        userId = scan();
+        userId = scanner.scan();
         cell_number = findCellNumber(userId);
           if(cell_number != CELL_QUANTITY){
               unregUser(cell_number);
               openCell(cell_number);
           }
-        }
     }
 }
