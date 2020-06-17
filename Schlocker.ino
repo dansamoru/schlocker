@@ -1,7 +1,9 @@
 /*
+ *
  * PROJECT: SCHLOCKER!
- * Developers: Dneprov Stepan, Samoilov Daniil
- *             vk: @pegaster   vk: @dansamoru
+ * Developers: 
+ *			Dneprov Stepan, Samoilov Daniil
+ *			vk: @pegaster   vk: @dansamoru
 */
 
 #include "src/schlockerFunc.h"
