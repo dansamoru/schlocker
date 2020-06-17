@@ -1,6 +1,6 @@
 #include "scanner.h"
 
-Scanner(pin){
+Scanner::Scanner(unsigned short pin, unsigned long _scanner_wait_time){
     rfid = Adafruit_PN532(pin, 100);
     if (!rfid.getFirmwareVersion()) {
         Serial.print("Scanner didn't found");
@@ -19,7 +19,7 @@ unsigned long Scanner::read(){
 unsigned long Scanner::scan(){
       unsigned long startTime = millis();  //  Variable for timer
       delay(1);
-      while (millis() - startTime <= SCANNER_WAIT_TIME) {
+      while (millis() - startTime <= _scanner_wait_time) {
           if (isAvailable()) {
               unsigned long uid = read();
               return uid;

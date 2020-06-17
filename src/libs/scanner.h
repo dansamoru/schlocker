@@ -2,8 +2,6 @@
 #include <Arduino.h>
 #include <Adafruit_PN532.h>
 
-#define SCANNER_WAITTIME 1000
-
 class Scanner{
     Adafruit_PN532 rfid;
     uint8_t uid[8]{};
