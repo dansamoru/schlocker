@@ -28,6 +28,7 @@
 #define LOCKER_DEFAULT true  //  Value when closed
 #define LOOP_DELAY 10
 #define SERIAL_BAUDRATE 9600  //  Serial speed
+#define SCANNER_WAITTIME 1000
 //  =TIMES=
 #define LOCKER_WAITTIME 1000
 #define CELL_DAWNTIME 604800000
