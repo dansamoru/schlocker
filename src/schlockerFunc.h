@@ -6,8 +6,6 @@
 //  ==INCLUDES==
 #include <Arduino.h>
 #include <EEPROM.h>
-#include <Wire.h>
-#include <SPI.h>
 //  =LIBS=
 #include "libs/scanner.h"
 
@@ -31,7 +29,7 @@
 #define SERIAL_BAUDRATE 9600  //  Serial speed
 #define SCANNER_WAITTIME 1000
 //  =TIMES=
-#define LOCKER_WAITTIME 1000
+#define LOCKER_WAIT_TIME 1000
 #define CELL_DAWNTIME 604800000
 #define CELL_OPEN_TIME_LIMIT 120000
 

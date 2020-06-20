@@ -128,7 +128,7 @@ unsigned short update_status(){
     cell_data buffer;
     for(unsigned short i = 0; i < CELL_QUANTITY; i++){
         EEPROM.get(i * cell_data_size + 1, buffer);
-        if(millis() - buffer.lastOpenTime > CELL_DONT_OPEN_TIME){
+        if(millis() - buffer.lastOpenTime > CELL_DAWNTIME){
             isYellow = true;
         }
         if(buffer.userId == 4294967295){
@@ -192,7 +192,7 @@ void update(){
             cell_number = regUser(userId);
         }
         if(cell_number != CELL_QUANTITY){
-            penCell(cell_number);
+            openCell(cell_number);
             updateLastOpenTime(cell_number);
         }
     }
