@@ -1,12 +1,13 @@
 #include "scanner.h"
-
-Scanner::Scanner(unsigned short pin, unsigned long scanner_wait_time){
-    _scanner_wait_time = scanner_wait_time;
+#include <Adafruit_PN532.h>
+Scanner::Scanner(unsigned int pin, unsigned long wait_time){
+    _wait_time = wait_time;
     rfid = Adafruit_PN532(pin, 100);
+    rfid.begin();
     if (!rfid.getFirmwareVersion()) {
         Serial.print("Scanner didn't found");
     }
-        rfid.SAMConfig();
+    rfid.SAMConfig();
 }
 
 bool Scanner::isReadable(){
@@ -20,10 +21,10 @@ unsigned long Scanner::read(){
 unsigned long Scanner::scan(){
       unsigned long startTime = millis();  //  Variable for timer
       delay(1);
-      while (millis() - startTime <= _scanner_wait_time) {
-          if (isReadable()) {
-              unsigned long uid = read();
-              return uid;
+      while (millis() - startTime <= _wait_time) {
+      if (isReadable()) {
+          unsigned long uid = read();
+          return uid;
           }
       }
       return 0;
