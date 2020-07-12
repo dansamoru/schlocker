@@ -6,8 +6,9 @@
 //  ==INCLUDES==
 #include <Arduino.h>
 #include <EEPROM.h>
-//  =LIBS=
-#include "libs/scanner.h"
+#include <Wire.h>
+#include <SPI.h>
+#include <Adafruit_PN532.h>
 
 //  ==DEFINES==
 //  =PROJECT=
@@ -23,13 +24,12 @@
 //  =HARDWARE=
 #define SOUND 400
 #define PLAY_TIME 50
-#define SCANNER_WAITTIME 1000
 #define LOCKER_DEFAULT true  //  Value when closed
 #define LOOP_DELAY 10
 #define SERIAL_BAUDRATE 9600  //  Serial speed
-#define SCANNER_WAITTIME 1000
 //  =TIMES=
-#define LOCKER_WAIT_TIME 1000
+#define SCANNER_WAITTIME 1000
+#define LOCKER_WAITTIME 1000
 #define CELL_DAWNTIME 604800000
 #define CELL_OPEN_TIME_LIMIT 120000
 
@@ -42,9 +42,12 @@ struct cell_data{
 
 //  ===HEADERS===
 void pinModes();
+void scannerSetup();
 void cellSetup();
 void memorySetup();
 void update();
+bool isReadable();
+unsigned long scan();
 void indicate(unsigned short status);
 unsigned short update_status();
 unsigned short findCellNumber(unsigned long userId);

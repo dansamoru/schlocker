@@ -1,11 +1,11 @@
- //  ===SETTINGS===
+LOCKER_DEFAULT//  ===SETTINGS===
 
 //  ==INCLUDES==
 #include "schlockerFunc.h"
 
 //  ==CONSTS==
 const unsigned short cell_data_size = sizeof(cell_data);
-Scanner scanner(SCANNER_PIN, 100);
+Adafruit_PN532 scanner(SCANNER_PIN, 100);
 unsigned short
     lockers[CELL_QUANTITY],
     sensors[CELL_QUANTITY];
@@ -15,6 +15,8 @@ const unsigned short
     greenLed = 10,
     yellowLed = 10,
     redLed = 10;
+uint8_t uid[USERID_LENGTH];
+uint8_t uidLength{};
 
 
 //  ===REALIZATION===
@@ -44,6 +46,13 @@ void pinModes(){
     pinMode(redLed, OUTPUT);
 }
 
+void scannerSetup(){
+    scanner.begin();
+    if (!scanner.getFirmwareVersion()) {
+        Serial.println("Scaner didn't found");
+    }
+    scanner.SAMConfig();
+}
 
 void memorySetup(){
     if(EEPROM.read(0) == 255){
@@ -55,6 +64,20 @@ void memorySetup(){
     else if(EEPROM.read(0) != CELL_QUANTITY){
         while(true){
             Serial.println("Лох, у тебя еепром плохой ты сука");
+        }
+    }
+}
+
+bool isReadable(){
+    return scanner.readPassiveTargetID(PN532_MIFARE_ISO14443A, uid, &uidLength);
+}
+
+unsigned long scan(){
+    unsigned long startTime = millis();  //  Variable for timer
+    delay(1);
+    while (millis() - startTime <= SCANNER_WAIT_TIME) {
+        if (isReadable()) {
+            return *(unsigned long *) uid;
         }
     }
 }
@@ -128,7 +151,7 @@ unsigned short update_status(){
     cell_data buffer;
     for(unsigned short i = 0; i < CELL_QUANTITY; i++){
         EEPROM.get(i * cell_data_size + 1, buffer);
-        if(millis() - buffer.lastOpenTime > CELL_DAWNTIME){
+        if(millis() - buffer.lastOpenTime > CELL_DONT_OPEN_TIME){
             isYellow = true;
         }
         if(buffer.userId == 4294967295){
@@ -186,22 +209,27 @@ void update(){
     indicate(status);
     unsigned long userId;
     if(digitalRead(greenBtn) == LOW && digitalRead(redBtn) == HIGH){
-        userId = scanner.scan();
-        cell_number = findCellNumber(userId);
-        if(cell_number == CELL_QUANTITY && status < 2){
-            cell_number = regUser(userId);
-        }
-        if(cell_number != CELL_QUANTITY){
-            openCell(cell_number);
-            updateLastOpenTime(cell_number);
+
+        if(isReadable()){
+            userId = scan();
+            cell_number = findCellNumber(userId);
+            if(cell_number == CELL_QUANTITY && status < 2){
+                cell_number = regUser(userId);
+            }
+            if(cell_number != CELL_QUANTITY){
+                openCell(cell_number);
+                updateLastOpenTime(cell_number);
+            }
         }
     }
     else if(digitalRead(redBtn) == LOW && digitalRead(greenBtn) == HIGH){
-        userId = scanner.scan();
+        if(isReadable){
+        userId = scan();
         cell_number = findCellNumber(userId);
           if(cell_number != CELL_QUANTITY){
               unregUser(cell_number);
               openCell(cell_number);
           }
+        }
     }
 }
