@@ -13,7 +13,7 @@
 //  ==DEFINES==
 //  =PROJECT=
 #define CELL_QUANTITY 4
-//#define USERID_LENGTH 4  //  default — 4, secure — 7
+//#define BUFFER_LENGTH 4  //  default — 4, secure — 7
 //  =PINS=
 #define LOCKER_START_PIN 10
 #define SENSOR_START_PIN 10
@@ -28,8 +28,8 @@
 #define LOOP_DELAY 10
 #define SERIAL_BAUDRATE 9600  //  Serial speed
 //  =TIMES=
-#define SCANNER_WAITTIME 1000
-#define LOCKER_WAITTIME 1000
+#define SCANNER_WAIT_TIME 1000
+#define LOCKER_WAIT_TIME 1000
 #define CELL_DAWNTIME 604800000
 #define CELL_OPEN_TIME_LIMIT 120000
 

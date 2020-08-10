@@ -1,4 +1,4 @@
-LOCKER_DEFAULT//  ===SETTINGS===
+//  ===SETTINGS===
 
 //  ==INCLUDES==
 #include "schlockerFunc.h"
@@ -15,7 +15,7 @@ const unsigned short
     greenLed = 10,
     yellowLed = 10,
     redLed = 10;
-uint8_t uid[USERID_LENGTH];
+uint8_t uid[BUFFER_LENGTH];
 uint8_t uidLength{};
 
 
@@ -77,7 +77,7 @@ unsigned long scan(){
     delay(1);
     while (millis() - startTime <= SCANNER_WAIT_TIME) {
         if (isReadable()) {
-            return *(unsigned long *) uid;
+            return *(unsigned long *)uid;
         }
     }
 }
@@ -151,7 +151,7 @@ unsigned short update_status(){
     cell_data buffer;
     for(unsigned short i = 0; i < CELL_QUANTITY; i++){
         EEPROM.get(i * cell_data_size + 1, buffer);
-        if(millis() - buffer.lastOpenTime > CELL_DONT_OPEN_TIME){
+        if(millis() - buffer.lastOpenTime > CELL_DAWNTIME){
             isYellow = true;
         }
         if(buffer.userId == 4294967295){
