@@ -30,5 +30,3 @@
 
 --------------------------------------------------------
 
-Визуализация и хранение документации : https://drive.google.com/drive/folders/1qOm0LHQ7K9DNHF4RuQ4Y6G9a2wS6cezL 
-
