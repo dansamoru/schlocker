@@ -532,3 +532,4 @@ MigrationBackup/
 
 # CMake
 CMakeListsPrivate.txt
+.idea
