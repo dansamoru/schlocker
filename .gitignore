@@ -526,3 +526,9 @@ MigrationBackup/
 .ionide/
 
 # End of https://www.toptal.com/developers/gitignore/api/platformio,linux,windows,visualstudio,clion,cmake
+
+
+# User
+
+# CMake
+CMakeListsPrivate.txt
