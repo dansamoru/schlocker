@@ -23,6 +23,8 @@
 #define PIN_LOCKER_START 1
 #define PIN_SENSOR_START 6
 
+#define PIN_SCANNER 0
+
 
 // === END OF SETTINGS===
 

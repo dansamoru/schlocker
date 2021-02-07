@@ -5,6 +5,7 @@
 #include <Models.h>
 
 Cell cells[LOCKERS_QUANTITY];
+Scanner scanner(PIN_SCANNER, 100);
 
 void cellsSetup() {
     DEBUG_main("#Pin setup\n");
@@ -31,6 +32,14 @@ void cellsSetup() {
     }
 }
 
+void scannerSetup(){
+    scanner.begin();
+    if (!scanner.getFirmwareVersion()){
+        DEBUG_main("#Scanner failed");
+    }
+    scanner.SAMConfig();
+}
+
 void setup() {
     // Turn on Serial for debugging
 #if DEBUG != 0
@@ -39,6 +48,7 @@ void setup() {
     DEBUG_main("#Serial connected\n")
 
     cellsSetup();
+    scannerSetup();
 }
 
 void loop() {

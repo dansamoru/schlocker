@@ -17,6 +17,9 @@ struct Cell {
     byte card_uid[CARD_NUMBER_LENGTH] = {};
 };
 
-class Scanner : public Adafruit_PN532 {};
+class Scanner : public Adafruit_PN532 {
+public:
+    Scanner(uint8_t irq, uint8_t reset):Adafruit_PN532(irq, reset){}
+};
 
 #endif //SCHLOCKER_MODELS_H
