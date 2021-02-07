@@ -10,6 +10,11 @@ const unsigned short
         greenButton = PIN_BUTTON_GREEN,
         redButton = PIN_BUTTON_RED;
 
+void pinsSetup(){
+    pinMode(greenButton, INPUT_PULLUP);
+    pinMode(redButton, INPUT_PULLUP);
+}
+
 void cellsSetup() {
     DEBUG_main("#Pin setup\n");
     // Set up lockers
@@ -50,6 +55,7 @@ void setup() {
 #endif
     DEBUG_main("#Serial connected\n")
 
+    pinsSetup();
     cellsSetup();
     scannerSetup();
 }
