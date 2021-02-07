@@ -5,9 +5,8 @@
 #ifndef SCHLOCKER_CONSTANTS_H
 #define SCHLOCKER_CONSTANTS_H
 
-
-static const short LOCKERS_QUANTITY = 4;
-static const short CARD_NUMBER_LENGTH = 8;
+#define CARD_NUMBER_LENGTH 8
+#define DELAY_TIME 100
 
 
 #endif //SCHLOCKER_CONSTANTS_H
