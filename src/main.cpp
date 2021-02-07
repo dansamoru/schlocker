@@ -6,6 +6,9 @@
 
 Cell cells[LOCKERS_QUANTITY];
 Scanner scanner(PIN_SCANNER, 100);
+const unsigned short
+        greenButton = PIN_BUTTON_GREEN,
+        redButton = PIN_BUTTON_RED;
 
 void cellsSetup() {
     DEBUG_main("#Pin setup\n");

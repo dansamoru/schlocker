@@ -36,6 +36,9 @@
 
 #define PIN_SCANNER 0
 
+#define PIN_BUTTON_GREEN 0
+#define PIN_BUTTON_RED 0
+
 
 // === END OF SETTINGS===
 
