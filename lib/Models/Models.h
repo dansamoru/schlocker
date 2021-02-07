@@ -5,9 +5,12 @@
 #ifndef SCHLOCKER_MODELS_H
 #define SCHLOCKER_MODELS_H
 
+#include <Arduino.h>
+#include "Constants.h"
 
-class Models {
-
+struct Locker{
+    short id;
+    byte card_uid[CARD_NUMBER_LENGTH];
 };
 
 
