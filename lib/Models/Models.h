@@ -8,9 +8,11 @@
 #include <Arduino.h>
 #include "Constants.h"
 
-struct Locker{
-    short id;
-    byte card_uid[CARD_NUMBER_LENGTH];
+struct Cell {
+    unsigned short id = 0;
+    unsigned short locker_pin = 0;
+    unsigned short sensor_pin = 0;
+    byte card_uid[CARD_NUMBER_LENGTH] = {};
 };
 
 
