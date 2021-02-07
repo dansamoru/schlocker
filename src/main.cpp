@@ -10,7 +10,7 @@ const unsigned short
         greenButton = PIN_BUTTON_GREEN,
         redButton = PIN_BUTTON_RED;
 
-void pinsSetup(){
+void pinsSetup() {
     pinMode(greenButton, INPUT_PULLUP);
     pinMode(redButton, INPUT_PULLUP);
 }
@@ -40,17 +40,103 @@ void cellsSetup() {
     }
 }
 
-void scannerSetup(){
+void scannerSetup() {
     scanner.begin();
-    if (!scanner.getFirmwareVersion()){
+    if (!scanner.getFirmwareVersion()) {
         DEBUG_error("!>Scanner failed");
     }
     scanner.SAMConfig();
 }
 
+ScannerAnswer get_scannerAnswer() {
+    ScannerAnswer scannerAnswer;
+    uint8_t uid[CARD_NUMBER_LENGTH];
+    uint8_t uidLength;
+#if INPUT_DEBUG == 0
+    Debug_detail("Start scanning\n");
+    scannerAnswer.success = scanner.readPassiveTargetID(PN532_MIFARE_ISO14443A, uid, &uidLength);
+#elif INPUT_DEBUG == 1
+    DEBUG_main("#Enter uid\n");
+    DEBUG_detail("Length is: ");
+    DEBUG_detail(CARD_NUMBER_LENGTH);
+    DEBUG_detail("\n");
+    Serial.readBytes(uid, CARD_NUMBER_LENGTH);
+    scannerAnswer.success = true;
+    scannerAnswer.uidLength = CARD_NUMBER_LENGTH;
+#endif
+    if (scannerAnswer.success) {
+        if (scannerAnswer.uidLength == CARD_NUMBER_LENGTH) {
+            for (int i = 0; i < scannerAnswer.uidLength; ++i) {
+                scannerAnswer.uid[i] = uid[i];
+            }
+        } else {
+            scannerAnswer.success = false;
+        }
+    }
+    return scannerAnswer;
+}
+
+void openLocker(uint8_t pin) {
+    digitalWrite(pin, HIGH);
+    delay(LOCKER_DELAY);
+    digitalWrite(pin, LOW);
+}
+
+bool userRegister(const uint8_t *uid) {
+    for (auto &cell : cells) {
+        if (cell.is_vacant) {
+            cell.is_vacant = false;
+            for (int j = 0; j < CARD_NUMBER_LENGTH; ++j) {
+                cell.card_uid[j] = uid[j];
+            }
+            openLocker(cell.locker_pin);
+            return true;
+        }
+    }
+    return false;
+}
+
+void openCell(const uint8_t *uid, bool unregister = false) {
+    bool flag = true;
+    for (auto &cell : cells) {
+        if (!cell.is_vacant) {
+            for (int j = 0; j < CARD_NUMBER_LENGTH; ++j) {
+                if (uid[j] != cell.card_uid[j]) {
+                    break;
+                }
+            }
+            openLocker(cell.locker_pin);
+            if (unregister) {
+                cell.is_vacant = true;
+            }
+            flag = false;
+            break;
+        }
+    }
+    if (flag) {
+        if (userRegister(uid)) {
+            DEBUG_main("#New user registered\n")
+        }
+    }
+}
+
+void update() {
+    if (digitalRead(greenButton) == LOW && digitalRead(redButton) == HIGH) {
+        ScannerAnswer scannerAnswer = get_scannerAnswer();
+        if (scannerAnswer.success) {
+            openCell(scannerAnswer.uid);
+        }
+    } else if (digitalRead(greenButton) == HIGH && digitalRead(redButton) == LOW) {
+        ScannerAnswer scannerAnswer = get_scannerAnswer();
+        if (scannerAnswer.success) {
+            openCell(scannerAnswer.uid, true);
+        }
+    }
+}
+
 void setup() {
     // Turn on Serial for debugging
-#if DEBUG != 0
+#if DEBUG != 0 || INPUT_DEBUG != 0
     Serial.begin(9600);
 #endif
     DEBUG_main("#Serial connected\n")
@@ -61,5 +147,6 @@ void setup() {
 }
 
 void loop() {
+    update();
     delay(DELAY_TIME);
 }
