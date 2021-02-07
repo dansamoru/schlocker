@@ -35,7 +35,7 @@ void cellsSetup() {
 void scannerSetup(){
     scanner.begin();
     if (!scanner.getFirmwareVersion()){
-        DEBUG_main("#Scanner failed");
+        DEBUG_error("!>Scanner failed");
     }
     scanner.SAMConfig();
 }

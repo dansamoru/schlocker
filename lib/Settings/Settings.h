@@ -5,18 +5,29 @@
 #ifndef SCHLOCKER_SETTINGS_H
 #define SCHLOCKER_SETTINGS_H
 
+//  =DEVELOPMENT=
 /*
- * Set up a level of debugging
+ * Set the level of debugging
  *
  * Debug levels:
- *     0 - Debug off
- *     1 - Print main events [main]
- *     2 - Print everything [detail]
- *
+ *     0 - Print nothing [production]
+ *     1 - Print errors only [errors]
+ *     2 - Print main events [main]
+ *     3 - Print everything [detail]
  */
-#define DEBUG 2
+#define DEBUG 3
 
-//  PROJECT CONFIGURATIONS
+/*
+ * Set the level of input
+ *
+ * Input levels:
+ *     0 - Input nothing
+ *     1 - Input user
+ *     2 - Input everything (not supported)
+ */
+#define INPUT_DEBUG 1
+
+//  =PROJECT CONFIGURATIONS=
 #define LOCKERS_QUANTITY 4
 
 // Pins
@@ -29,15 +40,22 @@
 // === END OF SETTINGS===
 
 // System debug configuration
-#if DEBUG == 2
+#if DEBUG == 3
 #define DEBUG_detail(val) Serial.print(val);
 #define DEBUG_main(val) Serial.print(val);
-#elif DEBUG == 1
+#define DEBUG_error(val) Serial.print(val);
+#elif DEBUG == 2
 #define DEBUG_detail(val)
 #define DEBUG_main(val) Serial.print(val);
+#define DEBUG_error(val) Serial.print(val);
+#elif DEBUG == 1
+#define DEBUG_detail(val)
+#define DEBUG_main(val)
+#define DEBUG_error(val) Serial.print(val);
 #else
 #define DEBUG_detail(val)
 #define DEBUG_main(val)
+#define DEBUG_error(val)
 #endif
 
 #endif //SCHLOCKER_SETTINGS_H
