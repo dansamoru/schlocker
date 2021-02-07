@@ -6,7 +6,9 @@
 #define SCHLOCKER_MODELS_H
 
 #include <Arduino.h>
-#include "Constants.h"
+
+#include <Adafruit_PN532.h>
+#include <Constants.h>
 
 struct Cell {
     unsigned short id = 0;
@@ -15,5 +17,6 @@ struct Cell {
     byte card_uid[CARD_NUMBER_LENGTH] = {};
 };
 
+class Scanner : public Adafruit_PN532 {};
 
 #endif //SCHLOCKER_MODELS_H
