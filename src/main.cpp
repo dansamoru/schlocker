@@ -1,7 +1,7 @@
 #include <Arduino.h>
 
 #include <Settings.h>
-#include <Constants.h>
+//#include <Constants.h>
 #include <Models.h>
 
 Cell cells[LOCKERS_QUANTITY];
@@ -95,7 +95,7 @@ void openLocker(uint8_t pin) {
 bool userRegister(const uint8_t *uid) {
     for (auto &cell : cells) {
         if (cell.is_vacant) {
-            DEBUG_main("#User registration\n")
+            DEBUG_main("#User registration\n");
             cell.is_vacant = false;
             for (int j = 0; j < CARD_NUMBER_LENGTH; ++j) {
                 cell.card_uid[j] = uid[j];
@@ -111,38 +111,38 @@ bool userRegister(const uint8_t *uid) {
 }
 
 void openCell(uint8_t *uid, bool unregister = false) {
-    for (int i = 0; i < LOCKERS_QUANTITY; ++i) {
-        if (!cells[i].is_vacant) {
+    for (auto &cell : cells) {
+        if (!cell.is_vacant) {
             bool currentRegistration = true;
             for (int j = 0; j < CARD_NUMBER_LENGTH; ++j) {
-                if (uid[j] != cells[i].card_uid[j]) {
+                if (uid[j] != cell.card_uid[j]) {
                     currentRegistration = false;
                     break;
                 }
             }
             if (currentRegistration) {
-                openLocker(cells[i].locker_pin);
+                openLocker(cell.locker_pin);
                 if (unregister) {
                     DEBUG_main("#User deleted\n");
                     DEBUG_detail("    Locker:\n");
                     DEBUG_detail("        locker_pin=");
-                    DEBUG_detail(cells[i].locker_pin);
+                    DEBUG_detail(cell.locker_pin);
                     DEBUG_detail("\n        id=");
-                    DEBUG_detail(cells[i].id);
+                    DEBUG_detail(cell.id);
                     DEBUG_detail("\n    User uid:\n");
-                    for (int j = 0; j < CARD_NUMBER_LENGTH; ++j) {
+                    for (unsigned char j : cell.card_uid) {
                         DEBUG_detail("        ");
-                        DEBUG_detail(cells[i].card_uid[j]);
+                        DEBUG_detail(j);
                         DEBUG_detail("\n");
                     }
-                    cells[i].is_vacant = true;
+                    cell.is_vacant = true;
                 }
                 return;
             }
         }
     }
     if (userRegister(uid)) {
-        DEBUG_main("#New user registered\n")
+        DEBUG_main("#New user registered\n");
     } else {
         DEBUG_error("!>User registration failed\n");
     }
@@ -189,7 +189,7 @@ void setup() {
 #if DEBUG != 0 || INPUT_DEBUG != 0
     Serial.begin(9600);
 #endif
-    DEBUG_main("#Serial connected\n")
+    DEBUG_main("#Serial connected\n");
 
     pinsSetup();
     cellsSetup();
