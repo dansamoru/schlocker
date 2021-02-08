@@ -48,17 +48,17 @@
 
 // System debug configuration
 #if DEBUG == 3
-#define DEBUG_detail(val) Serial.print(val);
-#define DEBUG_main(val) Serial.print(val);
-#define DEBUG_error(val) Serial.print(val);
+#define DEBUG_detail(val) Serial.print(val)
+#define DEBUG_main(val) Serial.print(val)
+#define DEBUG_error(val) Serial.print(val)
 #elif DEBUG == 2
 #define DEBUG_detail(val)
-#define DEBUG_main(val) Serial.print(val);
-#define DEBUG_error(val) Serial.print(val);
+#define DEBUG_main(val) Serial.print(val)
+#define DEBUG_error(val) Serial.print(val)
 #elif DEBUG == 1
 #define DEBUG_detail(val)
 #define DEBUG_main(val)
-#define DEBUG_error(val) Serial.print(val);
+#define DEBUG_error(val) Serial.print(val)
 #else
 #define DEBUG_detail(val)
 #define DEBUG_main(val)
