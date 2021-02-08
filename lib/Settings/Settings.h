@@ -23,19 +23,20 @@
  * Input levels:
  *     0 - Input nothing
  *     1 - Input user
- *     2 - Input everything (not supported)
+ *     2 - Input everything
  */
-#define INPUT_DEBUG 1
+#define INPUT_DEBUG 2
 
 //  =PROJECT CONFIGURATIONS=
 #define LOCKERS_QUANTITY 4
-#define CARD_NUMBER_LENGTH 8
+#define CARD_NUMBER_LENGTH 2
 #define DELAY_TIME 100
 #define LOCKER_DELAY 1000
+#define INPUT_DELAY 10
 
 // Pins
-#define PIN_LOCKER_START 1
-#define PIN_SENSOR_START 6
+#define PIN_LOCKER_START 0
+#define PIN_SENSOR_START 0
 
 #define PIN_SCANNER 0
 

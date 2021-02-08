@@ -24,6 +24,11 @@ struct ScannerAnswer {
     byte uidLength = 0;
 };
 
+struct State {
+    int greenButton = -1;
+    int redButton = -1;
+};
+
 class Scanner : public Adafruit_PN532 {
 public:
     Scanner(uint8_t irq, uint8_t reset) : Adafruit_PN532(irq, reset) {}
