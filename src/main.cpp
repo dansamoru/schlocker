@@ -25,7 +25,7 @@ void cellsSetup() {
         cells[i].sensor_pin = PIN_SENSOR_START + i;
 
         pinMode(cells[i].locker_pin, OUTPUT);
-        pinMode(cells[i].sensor_pin, INPUT);
+        pinMode(cells[i].sensor_pin, INPUT_PULLUP);
 
 
         DEBUG_detail("   locker[");
@@ -42,11 +42,14 @@ void cellsSetup() {
 
 void scannerSetup() {
 #if INPUT_DEBUG == 0
+    DEBUG_detail("Connecting to scanner...\n");
     scanner.begin();
     if (!scanner.getFirmwareVersion()) {
-        DEBUG_error("!>Scanner failed");
+        DEBUG_error("!>Scanner failed\n");
+        return;
     }
     scanner.SAMConfig();
+    DEBUG_main("#Scanner connected\n");
 #endif
 }
 
@@ -54,7 +57,7 @@ ScannerAnswer get_scannerAnswer() {
     ScannerAnswer scannerAnswer;
     uint8_t uid[CARD_NUMBER_LENGTH];
 #if INPUT_DEBUG == 0
-    Debug_detail("Start scanning\n");
+    DEBUG_detail("Start scanning\n");
     scannerAnswer.success = scanner.readPassiveTargetID(PN532_MIFARE_ISO14443A, uid, &scannerAnswer.uidLength);
 #elif INPUT_DEBUG >= 1
     DEBUG_main("#Enter uid\n");
@@ -71,14 +74,12 @@ ScannerAnswer get_scannerAnswer() {
     scannerAnswer.success = true;
     scannerAnswer.uidLength = CARD_NUMBER_LENGTH;
 #endif
-    if (scannerAnswer.success) {
-        if (scannerAnswer.uidLength == CARD_NUMBER_LENGTH) {
-            for (int i = 0; i < scannerAnswer.uidLength; ++i) {
-                scannerAnswer.uid[i] = uid[i];
-            }
-        } else {
-            scannerAnswer.success = false;
+    if (scannerAnswer.success && scannerAnswer.uidLength == CARD_NUMBER_LENGTH) {
+        for (int i = 0; i < scannerAnswer.uidLength; ++i) {
+            scannerAnswer.uid[i] = uid[i];
         }
+    } else {
+        scannerAnswer.success = false;
     }
     return scannerAnswer;
 }
@@ -168,19 +169,25 @@ State getCurrentState() {
 void update() {
     State currentState = getCurrentState();
     if (currentState.greenButton == LOW && currentState.redButton == HIGH) {
-        DEBUG_detail("Only greenButton pressed\n");
+        DEBUG_detail("Only greenButton is pressed\n");
         ScannerAnswer scannerAnswer = get_scannerAnswer();
         if (scannerAnswer.success) {
-            DEBUG_detail("Got success scannerAnswer\n");
+            DEBUG_detail("Got successful scannerAnswer\n");
             openCell(scannerAnswer.uid);
+        } else {
+            DEBUG_detail("Got wrong scannerAnswer\n");
         }
     } else if (currentState.greenButton == HIGH && currentState.redButton == LOW) {
-        DEBUG_detail("Only redButton pressed\n");
+        DEBUG_detail("Only redButton is pressed\n");
         ScannerAnswer scannerAnswer = get_scannerAnswer();
         if (scannerAnswer.success) {
-            DEBUG_detail("Got success scannerAnswer\n");
+            DEBUG_detail("Got successful scannerAnswer\n");
             openCell(scannerAnswer.uid, true);
+        } else {
+            DEBUG_detail("Got wrong scannerAnswer\n");
         }
+    } else if (currentState.greenButton == LOW && currentState.redButton == LOW) {
+        DEBUG_detail("Both buttons are pressed\n");
     }
 }
 
@@ -189,7 +196,7 @@ void setup() {
 #if DEBUG != 0 || INPUT_DEBUG != 0
     Serial.begin(9600);
 #endif
-    DEBUG_main("#Serial connected\n");
+    DEBUG_main("\n#Serial connected\n");
 
     pinsSetup();
     cellsSetup();
