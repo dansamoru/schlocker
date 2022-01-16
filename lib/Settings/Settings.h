@@ -7,15 +7,10 @@
 
 //  =DEVELOPMENT=
 /*
- * Set the level of debugging
- *
- * Debug levels:
- *     0 - Print nothing [production]
- *     1 - Print errors only [errors]
- *     2 - Print main events [main]
- *     3 - Print everything [detail]
+ * Set debugging
+ *     0 - off
  */
-#define DEBUG 3
+#define DEBUG 0
 
 /*
  * Set the level of input
@@ -45,24 +40,5 @@
 
 
 // === END OF SETTINGS===
-
-//// System debug configuration
-//#if DEBUG == 3
-//#define DEBUG_detail(val) Serial.print(val)
-//#define DEBUG_main(val) Serial.print(val)
-//#define DEBUG_error(val) Serial.print(val)
-//#elif DEBUG == 2
-//#define DEBUG_detail(val)
-//#define DEBUG_main(val) Serial.print(val)
-//#define DEBUG_error(val) Serial.print(val)
-//#elif DEBUG == 1
-//#define DEBUG_detail(val)
-//#define DEBUG_main(val)
-//#define DEBUG_error(val) Serial.print(val)
-//#else
-//#define DEBUG_detail(val)
-//#define DEBUG_main(val)
-//#define DEBUG_error(val)
-//#endif
 
 #endif //SCHLOCKER_SETTINGS_H

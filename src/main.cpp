@@ -8,9 +8,7 @@
 
 Cell cells[LOCKERS_QUANTITY];
 Scanner scanner(PIN_SCANNER, 100);
-const unsigned short
-        greenButton = PIN_BUTTON_GREEN,
-        redButton = PIN_BUTTON_RED;
+uint8_t vacant_lockers_quantity = LOCKERS_QUANTITY;
 
 void smartdelay(unsigned long ms) {
     unsigned long realtime = millis();
@@ -18,8 +16,10 @@ void smartdelay(unsigned long ms) {
 }
 
 void pinsSetup() {
-    pinMode(greenButton, INPUT_PULLUP);
-    pinMode(redButton, INPUT_PULLUP);
+    pinMode(PIN_BUTTON_GREEN, INPUT_PULLUP);
+    pinMode(PIN_BUTTON_RED, INPUT_PULLUP);
+    pinMode(PIN_BUTTON_GREEN, OUTPUT);
+    pinMode(PIN_BUTTON_RED, OUTPUT);
 }
 
 void cellsSetup() {
@@ -34,8 +34,8 @@ void cellsSetup() {
         pinMode(cells[i].locker_pin, OUTPUT);
         pinMode(cells[i].sensor_pin, INPUT_PULLUP);
 
-        Log.traceln("\t\tLocker: num=%d, id=%d, lpin=%d, spin=%d", i, cells[i].id, cells[i].locker_pin,
-                    cells[i].sensor_pin);
+        Log.traceln("\t\tLocker: num=%d, id=%d, lpin=%d, spin=%d",
+                    i, cells[i].id, cells[i].locker_pin, cells[i].sensor_pin);
     }
     Log.infoln("\tPin setup successful");
 }
@@ -45,12 +45,29 @@ void scannerSetup() {
     Log.noticeln("\tScanner setup started...");
     scanner.begin();
     if (!scanner.getFirmwareVersion()) {
-        Log.errorln("\t\tScanner setup failed");
+        Log.fatalln("\t\tScanner setup failed");
         return;
     }
     scanner.SAMConfig();
-    Log.fatalln("\tScanner setup successful");
+    Log.infoln("\tScanner setup successful");
 #endif
+}
+
+void updateVacantLockersQuantity(bool add) {
+    Log.noticeln("Change system status (%d): %d", vacant_lockers_quantity, add ? 1 : -1);
+    if (vacant_lockers_quantity == 0) {
+        if (add) {
+            vacant_lockers_quantity = 1;
+            digitalWrite(PIN_BUTTON_GREEN, HIGH);
+            digitalWrite(PIN_BUTTON_RED, LOW);
+        }
+    } else if (vacant_lockers_quantity == 1 && !add) {
+        vacant_lockers_quantity = 0;
+        digitalWrite(PIN_BUTTON_GREEN, LOW);
+        digitalWrite(PIN_BUTTON_RED, HIGH);
+    } else {
+        vacant_lockers_quantity += add ? 1 : -1;
+    }
 }
 
 ScannerAnswer get_scannerAnswer() {
@@ -63,7 +80,9 @@ ScannerAnswer get_scannerAnswer() {
     Log.verboseln("Enter uid, len=%d:", CARD_NUMBER_LENGTH);
     for (int i = 0; i < CARD_NUMBER_LENGTH; ++i) {
         Log.verboseln("\tuid[%d]?", i);
-        while (!Serial.available()) { delay(INPUT_DELAY); }
+        while (!Serial.available()) {
+            smartdelay(INPUT_DELAY);
+        }
         uid[i] = Serial.read() - '0';
     }
     scannerAnswer.success = true;
@@ -119,11 +138,12 @@ void openCell(uint8_t *uid, bool unregister = false) {
                 if (unregister) {
                     Log.noticeln("User delete");
                     Log.traceln("\tLocker:\n\t\tid=%d\n\t\tlpin=%d", cell.id, cell.locker_pin);
-                    Log.traceln("\n\tuid=");
+                    Log.traceln("\tuid=");
                     for (unsigned char j: cell.card_uid) {
-                        Log.traceln("\t\t%c", j);
+                        Log.traceln("\t\t%d", j);
                     }
                     cell.is_vacant = true;
+                    updateVacantLockersQuantity(true);
                 }
                 return;
             }
@@ -131,6 +151,7 @@ void openCell(uint8_t *uid, bool unregister = false) {
     }
     if (userRegister(uid)) {
         Log.infoln("User registered");
+        updateVacantLockersQuantity(false);
     } else {
         Log.errorln("User registration failed");
     }
@@ -147,8 +168,8 @@ State getCurrentState() {
     while (!Serial.available()) { delay(INPUT_DELAY); }
     currentState.redButton = (Serial.read() == '0' ? LOW : HIGH);
 #else
-    currentState.greenButton = digitalRead(greenButton);
-    currentState.redButton = digitalRead(redButton);
+    currentState.greenButton = digitalRead(PIN_BUTTON_GREEN);
+    currentState.redButton = digitalRead(PIN_BUTTON_RED);
 #endif
     return currentState;
 }
@@ -193,6 +214,9 @@ void setup() {
     pinsSetup();
     cellsSetup();
     scannerSetup();
+
+    digitalWrite(PIN_BUTTON_GREEN, LOW);
+    digitalWrite(PIN_BUTTON_RED, HIGH);
 }
 
 void loop() {
