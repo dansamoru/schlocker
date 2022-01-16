@@ -1,8 +1,10 @@
 #include <Arduino.h>
 
 #include <Settings.h>
-//#include <Constants.h>
+#include <Constants.h>
 #include <Models.h>
+
+#include <ArduinoLog.h>
 
 Cell cells[LOCKERS_QUANTITY];
 Scanner scanner(PIN_SCANNER, 100);
@@ -10,15 +12,20 @@ const unsigned short
         greenButton = PIN_BUTTON_GREEN,
         redButton = PIN_BUTTON_RED;
 
+void smartdelay(unsigned long ms) {
+    unsigned long realtime = millis();
+    while ((millis() - realtime) < ms) {}
+}
+
 void pinsSetup() {
     pinMode(greenButton, INPUT_PULLUP);
     pinMode(redButton, INPUT_PULLUP);
 }
 
 void cellsSetup() {
-    DEBUG_main("#Pin setup\n");
+    Log.noticeln("\tPin setup started...");
     // Set up lockers
-    DEBUG_detail("Set up lockers:\n");
+    Log.traceln("\tSet up lockers:");
     for (short i = 0; i < LOCKERS_QUANTITY; ++i) {
         cells[i].id = i;
         cells[i].locker_pin = PIN_LOCKER_START + i;
@@ -27,29 +34,22 @@ void cellsSetup() {
         pinMode(cells[i].locker_pin, OUTPUT);
         pinMode(cells[i].sensor_pin, INPUT_PULLUP);
 
-
-        DEBUG_detail("   locker[");
-        DEBUG_detail(i);
-        DEBUG_detail("]: id=");
-        DEBUG_detail(cells[i].id);
-        DEBUG_detail(" locker_pin=");
-        DEBUG_detail(cells[i].locker_pin);
-        DEBUG_detail(" sensor_pin=");
-        DEBUG_detail(cells[i].sensor_pin);
-        DEBUG_detail("\n");
+        Log.traceln("\t\tLocker: num=%d, id=%d, lpin=%d, spin=%d", i, cells[i].id, cells[i].locker_pin,
+                    cells[i].sensor_pin);
     }
+    Log.infoln("\tPin setup successful");
 }
 
 void scannerSetup() {
 #if INPUT_DEBUG == 0
-    DEBUG_detail("Connecting to scanner...\n");
+    Log.noticeln("\tScanner setup started...");
     scanner.begin();
     if (!scanner.getFirmwareVersion()) {
-        DEBUG_error("!>Scanner failed\n");
+        Log.errorln("\t\tScanner setup failed");
         return;
     }
     scanner.SAMConfig();
-    DEBUG_main("#Scanner connected\n");
+    Log.fatalln("\tScanner setup successful");
 #endif
 }
 
@@ -57,17 +57,12 @@ ScannerAnswer get_scannerAnswer() {
     ScannerAnswer scannerAnswer;
     uint8_t uid[CARD_NUMBER_LENGTH];
 #if INPUT_DEBUG == 0
-    DEBUG_detail("Start scanning\n");
+    Log.traceln("Scanning started");
     scannerAnswer.success = scanner.readPassiveTargetID(PN532_MIFARE_ISO14443A, uid, &scannerAnswer.uidLength);
 #elif INPUT_DEBUG >= 1
-    DEBUG_main("#Enter uid\n");
-    DEBUG_detail("Length is: ");
-    DEBUG_detail(CARD_NUMBER_LENGTH);
-    DEBUG_detail("\n");
+    Log.verboseln("Enter uid, len=%d:", CARD_NUMBER_LENGTH);
     for (int i = 0; i < CARD_NUMBER_LENGTH; ++i) {
-        DEBUG_detail("    uid[");
-        DEBUG_detail(i);
-        DEBUG_detail("]?\n");
+        Log.verboseln("\tuid[%d]?", i);
         while (!Serial.available()) { delay(INPUT_DELAY); }
         uid[i] = Serial.read() - '0';
     }
@@ -85,24 +80,22 @@ ScannerAnswer get_scannerAnswer() {
 }
 
 void openLocker(uint8_t pin) {
-    DEBUG_detail("Locker open, pin=");
-    DEBUG_detail(pin);
-    DEBUG_detail("\n");
+    Log.noticeln("Locker open");
+    Log.traceln("\tpin = %d", pin);
     digitalWrite(pin, HIGH);
-    delay(LOCKER_DELAY);
+    smartdelay(LOCKER_DELAY);
     digitalWrite(pin, LOW);
 }
 
 bool userRegister(const uint8_t *uid) {
-    for (auto &cell : cells) {
+    for (auto &cell: cells) {
         if (cell.is_vacant) {
-            DEBUG_main("#User registration\n");
+            Log.noticeln("User registration...");
+            Log.traceln("\tuid=");
             cell.is_vacant = false;
             for (int j = 0; j < CARD_NUMBER_LENGTH; ++j) {
                 cell.card_uid[j] = uid[j];
-                DEBUG_detail("   ");
-                DEBUG_detail(uid[j]);
-                DEBUG_detail("\n");
+                Log.traceln("\t\t%d", uid[j]);
             }
             openLocker(cell.locker_pin);
             return true;
@@ -112,7 +105,7 @@ bool userRegister(const uint8_t *uid) {
 }
 
 void openCell(uint8_t *uid, bool unregister = false) {
-    for (auto &cell : cells) {
+    for (auto &cell: cells) {
         if (!cell.is_vacant) {
             bool currentRegistration = true;
             for (int j = 0; j < CARD_NUMBER_LENGTH; ++j) {
@@ -124,17 +117,11 @@ void openCell(uint8_t *uid, bool unregister = false) {
             if (currentRegistration) {
                 openLocker(cell.locker_pin);
                 if (unregister) {
-                    DEBUG_main("#User deleted\n");
-                    DEBUG_detail("    Locker:\n");
-                    DEBUG_detail("        locker_pin=");
-                    DEBUG_detail(cell.locker_pin);
-                    DEBUG_detail("\n        id=");
-                    DEBUG_detail(cell.id);
-                    DEBUG_detail("\n    User uid:\n");
-                    for (unsigned char j : cell.card_uid) {
-                        DEBUG_detail("        ");
-                        DEBUG_detail(j);
-                        DEBUG_detail("\n");
+                    Log.noticeln("User delete");
+                    Log.traceln("\tLocker:\n\t\tid=%d\n\t\tlpin=%d", cell.id, cell.locker_pin);
+                    Log.traceln("\n\tuid=");
+                    for (unsigned char j: cell.card_uid) {
+                        Log.traceln("\t\t%c", j);
                     }
                     cell.is_vacant = true;
                 }
@@ -143,20 +130,20 @@ void openCell(uint8_t *uid, bool unregister = false) {
         }
     }
     if (userRegister(uid)) {
-        DEBUG_main("#New user registered\n");
+        Log.infoln("User registered");
     } else {
-        DEBUG_error("!>User registration failed\n");
+        Log.errorln("User registration failed");
     }
 }
 
 State getCurrentState() {
     State currentState;
 #if INPUT_DEBUG == 2
-    DEBUG_main("#Input state\n");
-    DEBUG_main("    greenButton? (0 - pressed, 1)\n");
+    Log.verboseln("Input state:");
+    Log.verboseln("\tgreenButton? (0 - pressed, 1)");
     while (!Serial.available()) { delay(INPUT_DELAY); }
     currentState.greenButton = (Serial.read() == '0' ? LOW : HIGH);
-    DEBUG_main("    redButton? (0 - pressed, 1)\n");
+    Log.verboseln("\tredButton? (0 - pressed, 1)");
     while (!Serial.available()) { delay(INPUT_DELAY); }
     currentState.redButton = (Serial.read() == '0' ? LOW : HIGH);
 #else
@@ -169,25 +156,28 @@ State getCurrentState() {
 void update() {
     State currentState = getCurrentState();
     if (currentState.greenButton == LOW && currentState.redButton == HIGH) {
-        DEBUG_detail("Only greenButton is pressed\n");
+        Log.traceln("Only greenButton is pressed");
         ScannerAnswer scannerAnswer = get_scannerAnswer();
         if (scannerAnswer.success) {
-            DEBUG_detail("Got successful scannerAnswer\n");
+            // TODO: убрать повторения
+            Log.traceln("Got successful scannerAnswer");
             openCell(scannerAnswer.uid);
         } else {
-            DEBUG_detail("Got wrong scannerAnswer\n");
+            Log.warningln("Got wrong scannerAnswer");
         }
     } else if (currentState.greenButton == HIGH && currentState.redButton == LOW) {
-        DEBUG_detail("Only redButton is pressed\n");
+        Log.traceln("Only redButton is pressed");
         ScannerAnswer scannerAnswer = get_scannerAnswer();
         if (scannerAnswer.success) {
-            DEBUG_detail("Got successful scannerAnswer\n");
+            Log.traceln("Got successful scannerAnswer");
             openCell(scannerAnswer.uid, true);
         } else {
-            DEBUG_detail("Got wrong scannerAnswer\n");
+            Log.warningln("Got wrong scannerAnswer");
         }
     } else if (currentState.greenButton == LOW && currentState.redButton == LOW) {
-        DEBUG_detail("Both buttons are pressed\n");
+        Log.traceln("Both buttons are pressed");
+    } else {
+        Log.traceln("None buttons are pressed");
     }
 }
 
@@ -195,8 +185,10 @@ void setup() {
     // Turn on Serial for debugging
 #if DEBUG != 0 || INPUT_DEBUG != 0
     Serial.begin(9600);
+    while (!Serial && !Serial.available()) {}
+    Log.begin(LOG_LEVEL_VERBOSE, &Serial);
 #endif
-    DEBUG_main("\n#Serial connected\n");
+    Log.infoln("\nSetup started...");
 
     pinsSetup();
     cellsSetup();
@@ -205,5 +197,5 @@ void setup() {
 
 void loop() {
     update();
-    delay(DELAY_TIME);
+    smartdelay(DELAY_TIME);
 }

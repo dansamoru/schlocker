@@ -25,7 +25,7 @@
  *     1 - Input user only
  *     2 - Input everything
  */
-#define INPUT_DEBUG 0
+#define INPUT_DEBUG 2
 
 //  =PROJECT CONFIGURATIONS=
 #define LOCKERS_QUANTITY 4
@@ -46,23 +46,23 @@
 
 // === END OF SETTINGS===
 
-// System debug configuration
-#if DEBUG == 3
-#define DEBUG_detail(val) Serial.print(val)
-#define DEBUG_main(val) Serial.print(val)
-#define DEBUG_error(val) Serial.print(val)
-#elif DEBUG == 2
-#define DEBUG_detail(val)
-#define DEBUG_main(val) Serial.print(val)
-#define DEBUG_error(val) Serial.print(val)
-#elif DEBUG == 1
-#define DEBUG_detail(val)
-#define DEBUG_main(val)
-#define DEBUG_error(val) Serial.print(val)
-#else
-#define DEBUG_detail(val)
-#define DEBUG_main(val)
-#define DEBUG_error(val)
-#endif
+//// System debug configuration
+//#if DEBUG == 3
+//#define DEBUG_detail(val) Serial.print(val)
+//#define DEBUG_main(val) Serial.print(val)
+//#define DEBUG_error(val) Serial.print(val)
+//#elif DEBUG == 2
+//#define DEBUG_detail(val)
+//#define DEBUG_main(val) Serial.print(val)
+//#define DEBUG_error(val) Serial.print(val)
+//#elif DEBUG == 1
+//#define DEBUG_detail(val)
+//#define DEBUG_main(val)
+//#define DEBUG_error(val) Serial.print(val)
+//#else
+//#define DEBUG_detail(val)
+//#define DEBUG_main(val)
+//#define DEBUG_error(val)
+//#endif
 
 #endif //SCHLOCKER_SETTINGS_H
