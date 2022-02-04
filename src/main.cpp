@@ -18,8 +18,8 @@ void smartdelay(unsigned long ms) {
 void pinsSetup() {
     pinMode(PIN_BUTTON_GREEN, INPUT_PULLUP);
     pinMode(PIN_BUTTON_RED, INPUT_PULLUP);
-    pinMode(PIN_BUTTON_GREEN, OUTPUT);
-    pinMode(PIN_BUTTON_RED, OUTPUT);
+    pinMode(PIN_LED_GREEN, OUTPUT);
+    pinMode(PIN_LED_RED, OUTPUT);
 }
 
 void cellsSetup() {
@@ -58,13 +58,13 @@ void updateVacantLockersQuantity(bool add) {
     if (vacant_lockers_quantity == 0) {
         if (add) {
             vacant_lockers_quantity = 1;
-            digitalWrite(PIN_BUTTON_GREEN, HIGH);
-            digitalWrite(PIN_BUTTON_RED, LOW);
+            digitalWrite(PIN_LED_GREEN, HIGH);
+            digitalWrite(PIN_LED_RED, LOW);
         }
     } else if (vacant_lockers_quantity == 1 && !add) {
         vacant_lockers_quantity = 0;
-        digitalWrite(PIN_BUTTON_GREEN, LOW);
-        digitalWrite(PIN_BUTTON_RED, HIGH);
+        digitalWrite(PIN_LED_GREEN, LOW);
+        digitalWrite(PIN_LED_RED, HIGH);
     } else {
         vacant_lockers_quantity += add ? 1 : -1;
     }
@@ -215,8 +215,8 @@ void setup() {
     cellsSetup();
     scannerSetup();
 
-    digitalWrite(PIN_BUTTON_GREEN, LOW);
-    digitalWrite(PIN_BUTTON_RED, HIGH);
+    digitalWrite(PIN_LED_GREEN, HIGH);
+    digitalWrite(PIN_LED_RED, LOW);
 }
 
 void loop() {
